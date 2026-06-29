@@ -1,3 +1,3 @@
-$node = "C:\Users\User\.cache\codex-runtimes\codex-primary-runtime\dependencies\node\bin\node.exe"
+$pnpm = "C:\Users\User\.cache\codex-runtimes\codex-primary-runtime\dependencies\bin\pnpm.cmd"
 
-& $node ".\scripts\dev-server.mjs"
+& $pnpm "dev"

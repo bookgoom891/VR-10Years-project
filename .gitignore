@@ -1,8 +1,10 @@
 node_modules/
+.pnpm-store/
 dist/
 .env
 .env.*
 *.log
+*.tsbuildinfo
 
 # Codex workspace folders
 work/

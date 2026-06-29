@@ -1,38 +1,18 @@
-# Personal Web App
+# VR 리밸런싱
 
-개인용 웹앱을 만들기 위한 기본 골격입니다. 현재는 외부 패키지 없이 브라우저에서 바로 실행되는 정적 웹앱으로 시작합니다.
+TQQQ 기반 개인 VR(Value Rebalancing) 운용 계산 보조 웹앱입니다.
 
 ## 실행
 
-Codex 번들 Node.js로 로컬 서버를 실행할 수 있습니다.
-
 ```powershell
-.\start-webapp.ps1
+pnpm install
+pnpm dev
 ```
 
 브라우저에서 `http://localhost:5173`을 열면 됩니다.
 
-## Git 기본 흐름
+## 범위
 
-```powershell
-git status
-git add .
-git commit -m "Initial web app setup"
-```
-
-이 PC의 일반 PATH에 Git이 없다면 Codex 번들 Git을 사용해야 합니다. 이 저장소에서는 로컬 초기화만 해두었고, GitHub 원격 저장소 연결은 아직 하지 않았습니다.
-
-GitHub에 새 저장소를 만든 뒤 아래 형식으로 연결하면 됩니다.
-
-```powershell
-git remote add origin https://github.com/YOUR_NAME/YOUR_REPO.git
-git branch -M main
-git push -u origin main
-```
-
-커밋 작성자 설정이 필요하면 다음을 먼저 실행하세요.
-
-```powershell
-git config --global user.name "YOUR_NAME"
-git config --global user.email "YOUR_EMAIL"
-```
+- 실제 주문, 계좌 연동, 자동매매, 실시간 시세 API는 포함하지 않습니다.
+- 모든 입력값은 사용자가 직접 관리하며 localStorage에 저장됩니다.
+- 이 앱은 개인 운용 계산 보조 도구이며 투자 판단과 주문 실행은 사용자의 책임입니다.
