@@ -22,8 +22,9 @@ export async function fetchUsdKrwRate(): Promise<PriceSnapshot> {
 }
 
 export async function fetchLatestTqqqClose(symbol = "TQQQ"): Promise<PriceSnapshot> {
+  const safeSymbol = encodeURIComponent(symbol.toUpperCase());
   const response = await fetch(
-    `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol.toUpperCase())}?range=10d&interval=1d`
+    `/market/yahoo/v8/finance/chart/${safeSymbol}?range=10d&interval=1d`
   );
 
   if (!response.ok) throw new Error("종가 API 응답을 받을 수 없습니다.");
@@ -32,12 +33,14 @@ export async function fetchLatestTqqqClose(symbol = "TQQQ"): Promise<PriceSnapsh
   const closes: Array<number | null> = result?.indicators?.quote?.[0]?.close ?? [];
   const timestamps: number[] = result?.timestamp ?? [];
   let lastIndex = -1;
+
   for (let index = closes.length - 1; index >= 0; index -= 1) {
     if (typeof closes[index] === "number" && Number.isFinite(closes[index])) {
       lastIndex = index;
       break;
     }
   }
+
   const price = Number(closes[lastIndex]);
   const date =
     lastIndex >= 0 && timestamps[lastIndex]
@@ -45,12 +48,12 @@ export async function fetchLatestTqqqClose(symbol = "TQQQ"): Promise<PriceSnapsh
       : "";
 
   if (!Number.isFinite(price) || price <= 0) {
-    throw new Error("TQQQ 최근 종가를 찾을 수 없습니다.");
+    throw new Error(`${symbol.toUpperCase()} 최근 종가를 찾을 수 없습니다.`);
   }
 
   return {
     price,
     date,
-    source: "Yahoo Finance"
+    source: "Yahoo Finance via local Vite proxy"
   };
 }

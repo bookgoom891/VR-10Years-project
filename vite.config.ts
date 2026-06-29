@@ -5,6 +5,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     host: "127.0.0.1",
-    port: 5173
+    port: 5173,
+    proxy: {
+      "/market/yahoo": {
+        target: "https://query1.finance.yahoo.com",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/market\/yahoo/, "")
+      }
+    }
   }
 });
