@@ -1,0 +1,9 @@
+node_modules/
+dist/
+.env
+.env.*
+*.log
+
+# Codex workspace folders
+work/
+outputs/

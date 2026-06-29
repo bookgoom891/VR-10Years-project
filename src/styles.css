@@ -1,0 +1,158 @@
+:root {
+  color-scheme: light;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    sans-serif;
+  background: #f4f1ea;
+  color: #1f2933;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 32px 16px;
+}
+
+.workspace {
+  width: min(720px, 100%);
+  display: grid;
+  gap: 18px;
+}
+
+.topbar {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: #586a7a;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(2rem, 6vw, 4.25rem);
+  line-height: 0.96;
+}
+
+.topbar button,
+.task-item button {
+  border: 1px solid #1f2933;
+  background: #1f2933;
+  color: #ffffff;
+  cursor: pointer;
+}
+
+.topbar button {
+  min-width: 72px;
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 0 18px;
+  font-weight: 700;
+}
+
+.composer input {
+  width: 100%;
+  min-height: 56px;
+  border: 1px solid #c3cbd3;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0 16px;
+  color: #1f2933;
+}
+
+.composer input:focus {
+  border-color: #2563eb;
+  outline: 3px solid rgba(37, 99, 235, 0.16);
+}
+
+.task-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.task-item,
+.empty-state {
+  min-height: 58px;
+  border: 1px solid #d5dbe1;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.task-item {
+  display: grid;
+  grid-template-columns: 1fr 40px;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px 10px 14px;
+}
+
+.task-item label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.task-item input {
+  width: 18px;
+  height: 18px;
+  accent-color: #1f2933;
+}
+
+.task-item span {
+  overflow-wrap: anywhere;
+}
+
+.task-item.is-done span {
+  color: #7a8691;
+  text-decoration: line-through;
+}
+
+.task-item button {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  font-size: 1.25rem;
+}
+
+.empty-state {
+  display: grid;
+  place-items: center;
+  padding: 16px;
+  color: #6b7784;
+}
+
+@media (max-width: 560px) {
+  .topbar {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .topbar button {
+    width: 100%;
+  }
+}
