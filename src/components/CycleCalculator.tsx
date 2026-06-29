@@ -5,9 +5,17 @@ interface Props {
   cycle: CycleInput;
   result: CycleResult;
   onChange: (cycle: CycleInput) => void;
+  onRefreshClose: () => void;
+  onRefreshExchangeRate: () => void;
 }
 
-export default function CycleCalculator({ cycle, result, onChange }: Props) {
+export default function CycleCalculator({
+  cycle,
+  result,
+  onChange,
+  onRefreshClose,
+  onRefreshExchangeRate
+}: Props) {
   const update = <K extends keyof CycleInput>(key: K, value: CycleInput[K]) => {
     onChange({ ...cycle, [key]: value });
   };
@@ -30,10 +38,14 @@ export default function CycleCalculator({ cycle, result, onChange }: Props) {
         <NumberField label="현재 환율" value={cycle.exchangeRate} onChange={(value) => update("exchangeRate", value)} suffix="원/USD" />
         <NumberField label="E 직접 입력값" value={cycle.manualEndingEquity} onChange={(value) => update("manualEndingEquity", value)} />
       </div>
-      <label className="check-line">
-        <input type="checkbox" checked={cycle.useManualEndingEquity} onChange={(event) => update("useManualEndingEquity", event.target.checked)} />
-        E 직접 입력 사용
-      </label>
+      <div className="option-row">
+        <label className="check-line">
+          <input type="checkbox" checked={cycle.useManualEndingEquity} onChange={(event) => update("useManualEndingEquity", event.target.checked)} />
+          E 직접 입력 사용
+        </label>
+        <button type="button" onClick={onRefreshClose}>TQQQ 최근 종가 반영</button>
+        <button type="button" onClick={onRefreshExchangeRate}>USD/KRW 환율 반영</button>
+      </div>
       <div className="formula-box">
         <strong>계산 결과</strong>
         <p>E {money(result.endingEquity)} · 새 V {money(result.newV)} · 하단 {money(result.lowerBand)} · 상단 {money(result.upperBand)}</p>

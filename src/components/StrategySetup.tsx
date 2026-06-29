@@ -4,10 +4,20 @@ import { NumberField, TextField } from "./fields";
 interface Props {
   settings: StrategySettings;
   onChange: (settings: StrategySettings) => void;
+  onApplyToCycle: () => void;
+  onRefreshExchangeRate: () => void;
 }
 
-export default function StrategySetup({ settings, onChange }: Props) {
-  const update = <K extends keyof StrategySettings>(key: K, value: StrategySettings[K]) => {
+export default function StrategySetup({
+  settings,
+  onChange,
+  onApplyToCycle,
+  onRefreshExchangeRate
+}: Props) {
+  const update = <K extends keyof StrategySettings>(
+    key: K,
+    value: StrategySettings[K]
+  ) => {
     onChange({ ...settings, [key]: value });
   };
 
@@ -15,7 +25,7 @@ export default function StrategySetup({ settings, onChange }: Props) {
     <section className="panel">
       <div className="section-title">
         <h2>전략 설정</h2>
-        <p>자금은 TQQQ 평가금, Pool, STORE(S)로 분리해 달러 기준으로 계산합니다.</p>
+        <p>자금은 TQQQ 평가금, Pool, STORE(S)로 분리하고 달러 기준으로 계산합니다.</p>
       </div>
       <div className="form-grid">
         <TextField label="종목명" value={settings.symbol} onChange={(value) => update("symbol", value)} />
@@ -35,8 +45,14 @@ export default function StrategySetup({ settings, onChange }: Props) {
         <NumberField label="STORE 최소 투입 간격" value={settings.storeMinIntervalDays} onChange={(value) => update("storeMinIntervalDays", value)} suffix="일" />
       </div>
       <div className="option-row">
-        <label><input type="checkbox" checked={settings.useStore} onChange={(event) => update("useStore", event.target.checked)} /> STORE 사용</label>
-        <label><input type="checkbox" checked={settings.reflectStoreInV} onChange={(event) => update("reflectStoreInV", event.target.checked)} /> STORE 투입금 V 반영</label>
+        <label>
+          <input type="checkbox" checked={settings.useStore} onChange={(event) => update("useStore", event.target.checked)} />
+          STORE 사용
+        </label>
+        <label>
+          <input type="checkbox" checked={settings.reflectStoreInV} onChange={(event) => update("reflectStoreInV", event.target.checked)} />
+          STORE 투입금 V 반영
+        </label>
         <label>
           STORE 투입 방식
           <select value={settings.storeMode} onChange={(event) => update("storeMode", event.target.value as StrategySettings["storeMode"])}>
@@ -44,6 +60,14 @@ export default function StrategySetup({ settings, onChange }: Props) {
             <option value="move_to_pool">move_to_pool</option>
           </select>
         </label>
+      </div>
+      <div className="action-row">
+        <button className="primary-action" type="button" onClick={onApplyToCycle}>
+          전략 설정을 현재 사이클에 반영
+        </button>
+        <button type="button" onClick={onRefreshExchangeRate}>
+          실시간 USD/KRW 환율 가져오기
+        </button>
       </div>
     </section>
   );
