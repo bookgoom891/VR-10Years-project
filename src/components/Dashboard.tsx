@@ -1,4 +1,9 @@
-import type { CycleInput, CycleResult, StoreSignalResult, StrategySettings } from "../types";
+import type {
+  CycleInput,
+  CycleResult,
+  StoreSignalResult,
+  StrategySettings
+} from "../types";
 import { krw, money } from "./fields";
 
 interface Props {
@@ -29,8 +34,8 @@ export default function Dashboard({ settings, cycle, result, storeSignal }: Prop
           <strong>{value}</strong>
         </article>
       ))}
-      <article className={`metric-card signal ${storeSignal.isCandidate ? "hot" : ""}`}>
-        <span>STORE 신호 상태</span>
+      <article className="metric-card signal">
+        <span>STORE 상태</span>
         <strong>{storeSignal.labels.join(" · ")}</strong>
       </article>
     </section>

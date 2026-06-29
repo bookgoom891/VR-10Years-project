@@ -31,7 +31,7 @@ const historyKey = "vr-rebalancing.history";
 const defaultSettings: StrategySettings = {
   symbol: "TQQQ",
   initialCapital: 30000,
-  initialTqqqInvestment: 15000,
+  totalOrderQuantity: 120,
   initialPool: 9000,
   initialStore: 6000,
   bandRate: 0.15,
@@ -66,11 +66,6 @@ const defaultCycle: CycleInput = {
 const defaultStore: StoreSignalInput = {
   price: 125,
   prevPrice: 118,
-  ma20: 123,
-  prevMa20: 121,
-  ma50: 140,
-  ma100: 150,
-  ma200: 170,
   usedSplits: 0,
   lastInjectionDate: ""
 };
@@ -88,13 +83,17 @@ export default function App() {
   const [settings, setSettings] = useState(() =>
     loadFromStorage(settingsKey, defaultSettings)
   );
+  const [draftSettings, setDraftSettings] = useState(settings);
+  const [isStrategyEditing, setIsStrategyEditing] = useState(false);
   const [cycle, setCycle] = useState(() => loadFromStorage(cycleKey, defaultCycle));
   const [store, setStore] = useState(() => loadFromStorage(storeKey, defaultStore));
   const [history, setHistory] = useState<HistoryRecord[]>(() =>
     loadFromStorage(historyKey, [] as HistoryRecord[])
   );
   const [memo, setMemo] = useState("");
-  const [marketStatus, setMarketStatus] = useState("외부 데이터는 사용자가 버튼을 눌렀을 때만 가져옵니다.");
+  const [marketStatus, setMarketStatus] = useState(
+    "외부 데이터는 사용자가 버튼을 눌렀을 때만 가져옵니다."
+  );
 
   useEffect(() => saveToStorage(settingsKey, settings), [settings]);
   useEffect(() => saveToStorage(cycleKey, cycle), [cycle]);
@@ -126,9 +125,25 @@ export default function App() {
   );
   const errors = useMemo(() => validateInputs(settings, cycle), [settings, cycle]);
 
-  function syncSettingsToCycle() {
-    setCycle((current) => applySettingsToCycle(settings, current));
+  function syncSettingsToCycle(sourceSettings = settings) {
+    setCycle((current) => applySettingsToCycle(sourceSettings, current));
     setMarketStatus("전략 설정값을 현재 사이클 입력값에 반영했습니다.");
+  }
+
+  function beginStrategyEdit() {
+    setDraftSettings(settings);
+    setIsStrategyEditing(true);
+  }
+
+  function saveStrategySettings() {
+    setSettings(draftSettings);
+    setIsStrategyEditing(false);
+    syncSettingsToCycle(draftSettings);
+  }
+
+  function cancelStrategyEdit() {
+    setDraftSettings(settings);
+    setIsStrategyEditing(false);
   }
 
   async function refreshExchangeRate() {
@@ -136,6 +151,7 @@ export default function App() {
     try {
       const snapshot = await fetchUsdKrwRate();
       setSettings((current) => ({ ...current, exchangeRate: snapshot.price }));
+      setDraftSettings((current) => ({ ...current, exchangeRate: snapshot.price }));
       setCycle((current) => ({ ...current, exchangeRate: snapshot.price }));
       setMarketStatus(`환율 반영 완료: ${snapshot.price.toFixed(2)}원/USD (${snapshot.source})`);
     } catch (error) {
@@ -233,7 +249,9 @@ export default function App() {
       <Dashboard settings={settings} cycle={cycle} result={result} storeSignal={storeSignal} />
 
       <section className="market-toolbar">
-        <button type="button" onClick={syncSettingsToCycle}>전략 설정을 현재 사이클에 반영</button>
+        <button type="button" onClick={() => syncSettingsToCycle()}>
+          전략 설정을 현재 사이클에 반영
+        </button>
         <button type="button" onClick={refreshExchangeRate}>USD/KRW 환율 가져오기</button>
         <button type="button" onClick={refreshTqqqClose}>{settings.symbol} 최근 종가 가져오기</button>
         <span>{marketStatus}</span>
@@ -262,9 +280,13 @@ export default function App() {
 
       {activeTab === "setup" && (
         <StrategySetup
-          settings={settings}
-          onChange={setSettings}
-          onApplyToCycle={syncSettingsToCycle}
+          settings={isStrategyEditing ? draftSettings : settings}
+          isEditing={isStrategyEditing}
+          onChange={setDraftSettings}
+          onEdit={beginStrategyEdit}
+          onSave={saveStrategySettings}
+          onCancel={cancelStrategyEdit}
+          onApplyToCycle={() => syncSettingsToCycle(settings)}
           onRefreshExchangeRate={refreshExchangeRate}
         />
       )}
@@ -291,7 +313,6 @@ export default function App() {
           cycle={cycle}
           store={store}
           signal={storeSignal}
-          onCycleChange={setCycle}
           onStoreChange={setStore}
           onConfirmInjection={confirmStoreInjection}
         />

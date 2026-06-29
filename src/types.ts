@@ -3,7 +3,7 @@ export type StoreMode = "direct_buy" | "move_to_pool";
 export interface StrategySettings {
   symbol: string;
   initialCapital: number;
-  initialTqqqInvestment: number;
+  totalOrderQuantity: number;
   initialPool: number;
   initialStore: number;
   bandRate: number;
@@ -57,11 +57,6 @@ export interface OrderRow {
 export interface StoreSignalInput {
   price: number;
   prevPrice: number;
-  ma20: number;
-  prevMa20: number;
-  ma50: number;
-  ma100: number;
-  ma200: number;
   usedSplits: number;
   lastInjectionDate: string;
 }

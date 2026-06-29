@@ -24,7 +24,9 @@ export default function CycleCalculator({
     <section className="panel">
       <div className="section-title">
         <h2>사이클 계산</h2>
-        <p>E = 사이클 종료 시 TQQQ 가격 × 현재 보유 수량. 필요하면 E 직접 입력을 켤 수 있습니다.</p>
+        <p>
+          E = 사이클 종료 시 TQQQ 가격 × 현재 보유 수량. 필요하면 E 직접 입력을 켤 수 있습니다.
+        </p>
       </div>
       <div className="form-grid">
         <NumberField label="직전 V" value={cycle.previousV} onChange={(value) => update("previousV", value)} />
@@ -40,7 +42,11 @@ export default function CycleCalculator({
       </div>
       <div className="option-row">
         <label className="check-line">
-          <input type="checkbox" checked={cycle.useManualEndingEquity} onChange={(event) => update("useManualEndingEquity", event.target.checked)} />
+          <input
+            type="checkbox"
+            checked={cycle.useManualEndingEquity}
+            onChange={(event) => update("useManualEndingEquity", event.target.checked)}
+          />
           E 직접 입력 사용
         </label>
         <button type="button" onClick={onRefreshClose}>TQQQ 최근 종가 반영</button>
@@ -48,8 +54,12 @@ export default function CycleCalculator({
       </div>
       <div className="formula-box">
         <strong>계산 결과</strong>
-        <p>E {money(result.endingEquity)} · 새 V {money(result.newV)} · 하단 {money(result.lowerBand)} · 상단 {money(result.upperBand)}</p>
-        <p>총 전략 자산 {money(result.totalUsdAssets)} · 원화 참고 {krw(result.totalKrwAssets)}</p>
+        <p>
+          E {money(result.endingEquity)} · 새 V {money(result.newV)} · 하단 {money(result.lowerBand)} · 상단 {money(result.upperBand)}
+        </p>
+        <p>
+          총 전략 자산 {money(result.totalUsdAssets)} · 원화 참고 {krw(result.totalKrwAssets)}
+        </p>
       </div>
     </section>
   );

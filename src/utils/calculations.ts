@@ -42,21 +42,19 @@ export function applySettingsToCycle(
   settings: StrategySettings,
   cycle: CycleInput
 ): CycleInput {
-  const estimatedShares =
-    cycle.endingPrice > 0
-      ? Math.max(1, Math.floor(settings.initialTqqqInvestment / cycle.endingPrice))
-      : cycle.shares;
+  const shares = Math.max(1, Math.floor(settings.totalOrderQuantity));
+  const initialEquity = cycle.endingPrice > 0 ? cycle.endingPrice * shares : cycle.previousV;
 
   return {
     ...cycle,
-    previousV: settings.initialTqqqInvestment,
-    shares: estimatedShares,
+    previousV: initialEquity,
+    shares,
     currentPool: settings.initialPool,
     currentStore: settings.initialStore,
     contribution: settings.contribution,
     withdrawal: settings.withdrawal,
     exchangeRate: settings.exchangeRate,
-    manualEndingEquity: settings.initialTqqqInvestment,
+    manualEndingEquity: initialEquity,
     storeInjection: 0,
     useManualEndingEquity: false
   };
@@ -129,46 +127,13 @@ export function buildSellOrders(
 }
 
 export function evaluateStoreSignal(input: StoreSignalInput): StoreSignalResult {
-  const belowAll =
-    input.price < input.ma20 &&
-    input.price < input.ma50 &&
-    input.price < input.ma100 &&
-    input.price < input.ma200;
-  const longTermUpButPriceCollapsed =
-    belowAll &&
-    input.ma200 < input.ma100 &&
-    input.ma100 < input.ma50 &&
-    input.ma50 < input.ma20;
-  const downtrend =
-    input.price < input.ma20 &&
-    input.ma20 < input.ma50 &&
-    input.ma50 < input.ma100 &&
-    input.ma100 < input.ma200;
-  const crossedAbove20 =
-    input.prevPrice < input.prevMa20 && input.price >= input.ma20;
-  const reboundSignal =
-    crossedAbove20 &&
-    input.price < input.ma50 &&
-    input.price < input.ma100 &&
-    input.price < input.ma200;
-  const labels: string[] = [];
-
-  if (belowAll) labels.push("모든 이평선 하회");
-  if (longTermUpButPriceCollapsed) labels.push("상승장 급락형");
-  if (downtrend) labels.push("역배열 하락형");
-  if (reboundSignal) labels.push("20일선 재돌파");
-
-  const isCandidate =
-    belowAll || longTermUpButPriceCollapsed || downtrend || reboundSignal;
-  if (isCandidate) labels.push("STORE 투입 후보");
-
   return {
-    belowAll,
-    longTermUpButPriceCollapsed,
-    downtrend,
-    reboundSignal,
-    labels: labels.length > 0 ? labels : ["신호 없음"],
-    isCandidate
+    belowAll: false,
+    longTermUpButPriceCollapsed: false,
+    downtrend: false,
+    reboundSignal: false,
+    labels: [`수동 관리 · 사용 ${input.usedSplits}회`],
+    isCandidate: false
   };
 }
 
