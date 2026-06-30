@@ -18,6 +18,11 @@ export function calculateV1(settings: StrategySettings) {
   return settings.startClosePrice * settings.totalOrderQuantity;
 }
 
+function roundToTwo(value: number) {
+  if (!Number.isFinite(value)) return 0;
+  return Math.round(value * 100) / 100;
+}
+
 export function vStageLabel(stage: VStage) {
   if (stage === "V0") return "V0";
   if (stage === "V1") return "V1";
@@ -59,7 +64,7 @@ export function applySettingsToCycle(
   settings: StrategySettings,
   cycle: CycleInput
 ): CycleInput {
-  const shares = Math.max(1, Math.floor(settings.totalOrderQuantity));
+  const shares = Math.max(0.01, roundToTwo(settings.totalOrderQuantity));
   const v1 = calculateV1(settings);
 
   return {
@@ -230,7 +235,7 @@ export function validateInputs(
     errors.push("Pool 사용 한도는 0보다 크고 1보다 작거나 같아야 합니다.");
   }
   if (cycle.shares <= 0) errors.push("보유 수량은 0보다 커야 합니다.");
-  if (settings.orderUnit < 1) errors.push("주문 단위는 1 이상이어야 합니다.");
+  if (settings.orderUnit <= 0) errors.push("주문 단위는 0보다 커야 합니다.");
   if (cycle.storeInjection > cycle.currentStore) {
     errors.push("STORE 투입금은 현재 STORE보다 클 수 없습니다.");
   }

@@ -1,5 +1,5 @@
 import type { AdvancePreview, FillEntry } from "../types";
-import { money, price, shares } from "./fields";
+import { money, NumericInput, price, shares } from "./fields";
 
 interface Props {
   fills: FillEntry[];
@@ -55,21 +55,19 @@ export default function AdvanceCycle({
         <td>{fill.plannedPrice ? price(fill.plannedPrice) : "-"}</td>
         <td>{fill.plannedQuantity ? `${shares(fill.plannedQuantity)}주` : "-"}</td>
         <td>
-          <input
+          <NumericInput
             className="table-input"
-            type="number"
-            step="0.01"
+            step={0.01}
             value={fill.actualPrice}
-            onChange={(event) => updateFill(fill.id, { actualPrice: Number(event.target.value) })}
+            onChange={(value) => updateFill(fill.id, { actualPrice: value })}
           />
         </td>
         <td>
-          <input
+          <NumericInput
             className="table-input"
-            type="number"
-            step="1"
+            step={0.01}
             value={fill.actualQuantity}
-            onChange={(event) => updateFill(fill.id, { actualQuantity: Number(event.target.value) })}
+            onChange={(value) => updateFill(fill.id, { actualQuantity: value })}
           />
         </td>
         <td>

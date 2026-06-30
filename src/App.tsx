@@ -330,7 +330,7 @@ export default function App() {
       storeInjection: amount,
       shares:
         settings.storeMode === "direct_buy" && current.endingPrice > 0
-          ? current.shares + Math.floor(amount / current.endingPrice)
+          ? Math.round((current.shares + amount / current.endingPrice) * 100) / 100
           : current.shares
     }));
   }
