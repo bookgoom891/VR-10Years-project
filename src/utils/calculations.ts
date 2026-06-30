@@ -60,20 +60,19 @@ export function applySettingsToCycle(
   cycle: CycleInput
 ): CycleInput {
   const shares = Math.max(1, Math.floor(settings.totalOrderQuantity));
-  const effectiveClosePrice = cycle.endingPrice > 0 ? cycle.endingPrice : settings.startClosePrice;
-  const v1 = effectiveClosePrice * shares;
+  const v1 = calculateV1(settings);
 
   return {
     ...cycle,
     previousV: v1,
     shares,
-    endingPrice: effectiveClosePrice,
+    endingPrice: settings.startClosePrice,
     currentPool: settings.initialPool,
     currentStore: settings.initialStore,
     contribution: settings.contribution,
     withdrawal: settings.withdrawal,
     exchangeRate: settings.exchangeRate,
-    manualEndingEquity: effectiveClosePrice * shares,
+    manualEndingEquity: v1,
     storeInjection: 0,
     useManualEndingEquity: false,
     vStage: "V1"

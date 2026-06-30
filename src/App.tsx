@@ -221,6 +221,7 @@ export default function App() {
       setDraftSettings((current) => ({ ...current, startClosePrice: snapshot.price }));
       setCycle((current) => ({
         ...current,
+        previousV: current.vStage === "V1" ? snapshot.price * current.shares : current.previousV,
         endingPrice: snapshot.price,
         manualEndingEquity: snapshot.price * current.shares,
         useManualEndingEquity: false
