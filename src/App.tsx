@@ -388,7 +388,6 @@ export default function App() {
           onSave={saveStrategySettings}
           onCancel={cancelStrategyEdit}
           onApplyToCycle={() => syncSettingsToCycle(settings)}
-          onRefreshExchangeRate={refreshExchangeRate}
         />
       )}
       {activeTab === "cycle" && <CycleCalculator cycle={cycle} result={result} onChange={setCycle} onRefreshClose={refreshTqqqClose} onRefreshExchangeRate={refreshExchangeRate} />}
