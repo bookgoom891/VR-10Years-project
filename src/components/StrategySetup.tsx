@@ -34,7 +34,7 @@ export default function StrategySetup({
       <div className="section-title with-actions">
         <div>
           <h2>전략 설정</h2>
-          <p>기본 전략값입니다. 수정 버튼을 누른 뒤 저장하면 다시 잠깁니다.</p>
+          <p>초기 전략값입니다. 수정 버튼을 누른 뒤 저장하면 현재 사이클 입력값에 다시 반영됩니다.</p>
         </div>
         <div className="action-row compact">
           {!isEditing ? (
@@ -56,7 +56,7 @@ export default function StrategySetup({
 
       <div className="form-grid">
         <TextField label="종목명" value={settings.symbol} disabled={!isEditing} onChange={(value) => update("symbol", value)} />
-        <NumberField label="총 초기자본" value={settings.initialCapital} disabled={!isEditing} onChange={(value) => update("initialCapital", value)} />
+        <NumberField label="초기자본" value={settings.initialCapital} disabled={!isEditing} onChange={(value) => update("initialCapital", value)} />
         <NumberField label="초기 평단가" value={settings.initialAveragePrice} disabled={!isEditing} step={0.01} onChange={(value) => update("initialAveragePrice", value)} />
         <NumberField label="시작 직전 종가" value={settings.startClosePrice} disabled={!isEditing} step={0.01} onChange={(value) => update("startClosePrice", value)} />
         <NumberField label="총 주문 수량" value={settings.totalOrderQuantity} disabled={!isEditing} onChange={(value) => update("totalOrderQuantity", value)} suffix="주" />
@@ -65,9 +65,9 @@ export default function StrategySetup({
         <NumberField label="밴드 비율" value={settings.bandRate} disabled={!isEditing} step={0.01} onChange={(value) => update("bandRate", value)} suffix="0.15 = 15%" />
         <NumberField label="G값" value={settings.gValue} disabled={!isEditing} onChange={(value) => update("gValue", value)} />
         <NumberField label="사이클 주기" value={settings.cycleDays} disabled={!isEditing} onChange={(value) => update("cycleDays", value)} suffix="일" />
-        <NumberField label="정기 적립금" value={settings.contribution} disabled={!isEditing} onChange={(value) => update("contribution", value)} />
-        <NumberField label="인출금" value={settings.withdrawal} disabled={!isEditing} onChange={(value) => update("withdrawal", value)} />
-        <NumberField label="사이클당 Pool 사용 한도" value={settings.cyclePoolUseLimit} disabled={!isEditing} step={0.01} onChange={(value) => update("cyclePoolUseLimit", value)} suffix="0.4 = 40%" />
+        <NumberField label="사이클 당 적립금" value={settings.contribution} disabled={!isEditing} onChange={(value) => update("contribution", value)} />
+        <NumberField label="사이클 당 인출금" value={settings.withdrawal} disabled={!isEditing} onChange={(value) => update("withdrawal", value)} />
+        <NumberField label="사이클 당 Pool 사용 한도" value={settings.cyclePoolUseLimit} disabled={!isEditing} step={0.01} onChange={(value) => update("cyclePoolUseLimit", value)} suffix="0.4 = 40%" />
         <NumberField label="주문 단위" value={settings.orderUnit} disabled={!isEditing} onChange={(value) => update("orderUnit", value)} suffix="주" />
         <NumberField label="환율" value={settings.exchangeRate} disabled={!isEditing} onChange={(value) => update("exchangeRate", value)} suffix="원/USD" />
         <NumberField label="STORE 분할 횟수" value={settings.storeSplits} disabled={!isEditing} onChange={(value) => update("storeSplits", value)} suffix="회" />

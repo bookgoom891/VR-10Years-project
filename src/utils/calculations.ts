@@ -165,19 +165,20 @@ export function calculateAdvancePreview(
 ): AdvancePreview {
   const selectedFills = fills.filter((fill) => fill.selected && fill.actualQuantity > 0 && fill.actualPrice > 0);
   let sharesAfter = cycle.shares;
-  let poolAfter = cycle.currentPool;
+  let poolAfterFills = cycle.currentPool;
 
   for (const fill of selectedFills) {
     const value = fill.actualPrice * fill.actualQuantity;
     if (fill.side === "buy") {
       sharesAfter += fill.actualQuantity;
-      poolAfter -= value;
+      poolAfterFills -= value;
     } else {
       sharesAfter -= fill.actualQuantity;
-      poolAfter += value;
+      poolAfterFills += value;
     }
   }
 
+  const poolAfter = poolAfterFills + cycle.contribution - cycle.withdrawal;
   const previewCycle: CycleInput = {
     ...cycle,
     shares: sharesAfter,
@@ -191,6 +192,9 @@ export function calculateAdvancePreview(
     sharesBefore: cycle.shares,
     sharesAfter,
     poolBefore: cycle.currentPool,
+    poolAfterFills,
+    contribution: cycle.contribution,
+    withdrawal: cycle.withdrawal,
     poolAfter,
     endingEquity: result.endingEquity,
     nextV: result.newV,

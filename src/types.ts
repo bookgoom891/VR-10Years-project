@@ -78,6 +78,9 @@ export interface AdvancePreview {
   sharesBefore: number;
   sharesAfter: number;
   poolBefore: number;
+  poolAfterFills: number;
+  contribution: number;
+  withdrawal: number;
   poolAfter: number;
   endingEquity: number;
   nextV: number;

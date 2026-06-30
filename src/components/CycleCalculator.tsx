@@ -25,7 +25,7 @@ export default function CycleCalculator({
       <div className="section-title">
         <h2>사이클 계산</h2>
         <p>
-          E = 사이클 종료 시 TQQQ 가격 × 현재 보유 수량. 필요하면 E 직접 입력을 켤 수 있습니다.
+          E = 사이클 종료 시 TQQQ 가격 × 현재 보유 수량입니다. 필요하면 E를 직접 입력해 계산할 수 있습니다.
         </p>
       </div>
       <div className="form-grid">
@@ -34,7 +34,7 @@ export default function CycleCalculator({
         <NumberField label="사이클 종료 시 TQQQ 가격" value={cycle.endingPrice} step={0.01} onChange={(value) => update("endingPrice", value)} />
         <NumberField label="현재 Pool" value={cycle.currentPool} onChange={(value) => update("currentPool", value)} />
         <NumberField label="현재 STORE(S)" value={cycle.currentStore} onChange={(value) => update("currentStore", value)} />
-        <NumberField label="이번 사이클 정기 적립금" value={cycle.contribution} onChange={(value) => update("contribution", value)} />
+        <NumberField label="이번 사이클 적립금" value={cycle.contribution} onChange={(value) => update("contribution", value)} />
         <NumberField label="이번 사이클 인출금" value={cycle.withdrawal} onChange={(value) => update("withdrawal", value)} />
         <NumberField label="이번 사이클 STORE 투입금" value={cycle.storeInjection} onChange={(value) => update("storeInjection", value)} />
         <NumberField label="현재 환율" value={cycle.exchangeRate} onChange={(value) => update("exchangeRate", value)} suffix="원/USD" />
