@@ -43,11 +43,14 @@ button:disabled {
 }
 
 .app-header {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: 20px;
-  align-items: end;
   margin-bottom: 22px;
+}
+
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  align-items: center;
 }
 
 .eyebrow {
@@ -66,9 +69,37 @@ p {
 }
 
 h1 {
-  margin-bottom: 10px;
+  margin-bottom: 0;
   font-size: clamp(2.25rem, 7vw, 5rem);
   line-height: 0.95;
+}
+
+.v-stage-badge,
+.period-badge {
+  display: grid;
+  min-height: 76px;
+  align-content: center;
+  border: 1px solid #cad5df;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 12px 16px;
+}
+
+.v-stage-badge span,
+.period-badge span {
+  color: #627283;
+  font-size: 0.82rem;
+}
+
+.v-stage-badge strong {
+  color: #102033;
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  line-height: 0.95;
+}
+
+.period-badge strong {
+  color: #102033;
+  font-size: 1.1rem;
 }
 
 h2 {
@@ -106,14 +137,35 @@ h3 {
   font-size: 0.92rem;
 }
 
-.dashboard {
+.dashboard-grouped {
   display: grid;
-  grid-template-columns: repeat(5, minmax(160px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
   margin-bottom: 18px;
 }
 
+.dashboard-area {
+  border: 1px solid #d7dee5;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 14px;
+}
+
+.dashboard-area h2 {
+  margin-bottom: 12px;
+  color: #304253;
+  font-size: 1rem;
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(150px, 1fr));
+  gap: 10px;
+}
+
 .metric-card {
+  border-color: #e0e7ee;
+  background: #fbfcfd;
   min-height: 96px;
   padding: 16px;
 }
@@ -384,8 +436,8 @@ th {
 }
 
 @media (max-width: 1100px) {
-  .dashboard {
-    grid-template-columns: repeat(3, minmax(160px, 1fr));
+  .dashboard-grouped {
+    grid-template-columns: 1fr;
   }
 
   .form-grid,
@@ -404,15 +456,16 @@ th {
     padding: 18px 12px;
   }
 
-  .app-header {
-    grid-template-columns: 1fr;
+  .title-row {
+    align-items: stretch;
   }
 
-  .future-box {
-    max-width: none;
+  .v-stage-badge,
+  .period-badge {
+    width: 100%;
   }
 
-  .dashboard,
+  .metric-grid,
   .form-grid,
   .store-summary,
   .summary-grid {

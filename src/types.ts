@@ -9,6 +9,7 @@ export interface StrategySettings {
   initialAveragePrice: number;
   startClosePrice: number;
   totalOrderQuantity: number;
+  cycleStartDate: string;
   initialPool: number;
   initialStore: number;
   bandRate: number;

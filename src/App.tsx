@@ -34,6 +34,7 @@ const storeKey = "vr-rebalancing.store";
 const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
+const today = new Date().toISOString().slice(0, 10);
 
 const defaultSettings: StrategySettings = {
   symbol: "TQQQ",
@@ -41,6 +42,7 @@ const defaultSettings: StrategySettings = {
   initialAveragePrice: 125,
   startClosePrice: 125,
   totalOrderQuantity: 120,
+  cycleStartDate: today,
   initialPool: 9000,
   initialStore: 6000,
   bandRate: 0.15,
@@ -88,6 +90,25 @@ const tabs: Array<{ id: AppTab; label: string }> = [
   { id: "store", label: "STORE(S)" },
   { id: "history", label: "기록" }
 ];
+
+function addDays(dateText: string, days: number) {
+  const date = new Date(`${dateText}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return today;
+  date.setDate(date.getDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function formatDate(dateText: string) {
+  const date = new Date(`${dateText}T00:00:00`);
+  if (Number.isNaN(date.getTime())) return dateText;
+  return date.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
+}
+
+function cyclePeriod(settings: StrategySettings) {
+  const start = settings.cycleStartDate || today;
+  const end = addDays(start, Math.max(settings.cycleDays, 1) - 1);
+  return `${formatDate(start)} - ${formatDate(end)} · ${settings.cycleDays}일`;
+}
 
 function normalizeHistory(records: HistoryRecord[]): HistoryRecord[] {
   return records.map((record) => ({
@@ -253,6 +274,7 @@ export default function App() {
       fillDrafts
     };
     const record = makeRecord(history.length);
+    const nextStartDate = addDays(settings.cycleStartDate || today, settings.cycleDays);
     const nextCycle: CycleInput = {
       ...cycle,
       previousV: advancePreview.nextV,
@@ -264,6 +286,8 @@ export default function App() {
     };
 
     setUndoSnapshot(snapshot);
+    setSettings((current) => ({ ...current, cycleStartDate: nextStartDate }));
+    setDraftSettings((current) => ({ ...current, cycleStartDate: nextStartDate }));
     setHistory((current) => [record, ...current]);
     setCycle(nextCycle);
     setFillDrafts([]);
@@ -313,10 +337,19 @@ export default function App() {
       <header className="app-header">
         <div>
           <p className="eyebrow">TQQQ Value Rebalancing</p>
-          <h1>VR 리밸런싱</h1>
+          <div className="title-row">
+            <h1>VR 리밸런싱</h1>
+            <div className="v-stage-badge">
+              <span>현재 V 단계</span>
+              <strong>{cycle.vStage}</strong>
+            </div>
+            <div className="period-badge">
+              <span>현재 사이클</span>
+              <strong>{cyclePeriod(settings)}</strong>
+            </div>
+          </div>
           <p className="notice">이 앱은 개인 운용 계산 보조 도구이며 투자 판단과 주문 실행은 사용자의 책임입니다.</p>
         </div>
-        <div className="future-box">실시간 API, 백테스트, 계좌 연동, 자동 주문은 추후 확장 영역</div>
       </header>
 
       <Dashboard settings={settings} cycle={cycle} result={result} storeSignal={storeSignal} />

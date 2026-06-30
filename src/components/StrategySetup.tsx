@@ -60,11 +60,20 @@ export default function StrategySetup({
         <NumberField label="초기 평단가" value={settings.initialAveragePrice} disabled={!isEditing} step={0.01} onChange={(value) => update("initialAveragePrice", value)} />
         <NumberField label="시작 직전 종가" value={settings.startClosePrice} disabled={!isEditing} step={0.01} onChange={(value) => update("startClosePrice", value)} />
         <NumberField label="총 주문 수량" value={settings.totalOrderQuantity} disabled={!isEditing} onChange={(value) => update("totalOrderQuantity", value)} suffix="주" />
+        <label className="field">
+          <span>사이클 시작일</span>
+          <input
+            type="date"
+            value={settings.cycleStartDate}
+            disabled={!isEditing}
+            onChange={(event) => update("cycleStartDate", event.target.value)}
+          />
+        </label>
+        <NumberField label="사이클 주기" value={settings.cycleDays} disabled onChange={(value) => update("cycleDays", value)} suffix="일, 2주 고정" />
         <NumberField label="초기 Pool" value={settings.initialPool} disabled={!isEditing} onChange={(value) => update("initialPool", value)} />
         <NumberField label="초기 STORE(S)" value={settings.initialStore} disabled={!isEditing} onChange={(value) => update("initialStore", value)} />
         <NumberField label="밴드 비율" value={settings.bandRate} disabled={!isEditing} step={0.01} onChange={(value) => update("bandRate", value)} suffix="0.15 = 15%" />
         <NumberField label="G값" value={settings.gValue} disabled={!isEditing} onChange={(value) => update("gValue", value)} />
-        <NumberField label="사이클 주기" value={settings.cycleDays} disabled={!isEditing} onChange={(value) => update("cycleDays", value)} suffix="일" />
         <NumberField label="사이클 당 적립금" value={settings.contribution} disabled={!isEditing} onChange={(value) => update("contribution", value)} />
         <NumberField label="사이클 당 인출금" value={settings.withdrawal} disabled={!isEditing} onChange={(value) => update("withdrawal", value)} />
         <NumberField label="사이클 당 Pool 사용 한도" value={settings.cyclePoolUseLimit} disabled={!isEditing} step={0.01} onChange={(value) => update("cyclePoolUseLimit", value)} suffix="0.4 = 40%" />
