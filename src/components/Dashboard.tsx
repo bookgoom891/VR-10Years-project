@@ -1,11 +1,10 @@
-import type { CycleInput, CycleResult, StoreSignalResult, StrategySettings } from "../types";
-import { krw, money, price } from "./fields";
+import type { CycleInput, CycleResult, StrategySettings } from "../types";
+import { krw, money, price, shares } from "./fields";
 
 interface Props {
   settings: StrategySettings;
   cycle: CycleInput;
   result: CycleResult;
-  storeSignal: StoreSignalResult;
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
@@ -17,7 +16,11 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function Dashboard({ settings, cycle, result, storeSignal }: Props) {
+export default function Dashboard({ settings, cycle, result }: Props) {
+  const tqqqEquity = cycle.endingPrice * cycle.shares;
+  const totalUsdAssets = tqqqEquity + cycle.currentPool + cycle.currentStore;
+  const totalKrwAssets = totalUsdAssets * cycle.exchangeRate;
+
   return (
     <section className="dashboard dashboard-grouped">
       <div className="dashboard-area v-area">
@@ -33,7 +36,8 @@ export default function Dashboard({ settings, cycle, result, storeSignal }: Prop
       <div className="dashboard-area market-area">
         <h2>평가금 · 단가 · 환율</h2>
         <div className="metric-grid">
-          <MetricCard label={`현재 ${settings.symbol} 평가금 E`} value={money(result.endingEquity)} />
+          <MetricCard label={`현재 ${settings.symbol} 평가금`} value={money(tqqqEquity)} />
+          <MetricCard label={`현재 ${settings.symbol} 보유 수량`} value={`${shares(cycle.shares)}주`} />
           <MetricCard label={`현재 ${settings.symbol} 단가`} value={price(cycle.endingPrice)} />
           <MetricCard label="현재 환율" value={`${cycle.exchangeRate.toLocaleString("ko-KR")}원/USD`} />
         </div>
@@ -53,11 +57,8 @@ export default function Dashboard({ settings, cycle, result, storeSignal }: Prop
         <h2>STORE · 자산</h2>
         <div className="metric-grid">
           <MetricCard label="현재 STORE(S)" value={money(cycle.currentStore)} />
-          <MetricCard label="원화 환산 총자산" value={krw(result.totalKrwAssets)} />
-          <article className="metric-card signal">
-            <span>STORE 상태</span>
-            <strong>{storeSignal.labels.join(" · ")}</strong>
-          </article>
+          <MetricCard label="달러 환산 총자산" value={money(totalUsdAssets)} />
+          <MetricCard label="원화 환산 총자산" value={krw(totalKrwAssets)} />
         </div>
       </div>
     </section>

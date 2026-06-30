@@ -354,7 +354,7 @@ export default function App() {
         </div>
       </header>
 
-      <Dashboard settings={settings} cycle={cycle} result={result} storeSignal={storeSignal} />
+      <Dashboard settings={settings} cycle={cycle} result={result} />
 
       <section className="market-toolbar">
         <button type="button" onClick={() => syncSettingsToCycle()}>전략 설정을 현재 사이클에 반영</button>
