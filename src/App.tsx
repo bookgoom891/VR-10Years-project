@@ -217,6 +217,8 @@ export default function App() {
     setMarketStatus(`${settings.symbol} 최근 종가를 가져오는 중입니다...`);
     try {
       const snapshot = await fetchLatestTqqqClose(settings.symbol);
+      setSettings((current) => ({ ...current, startClosePrice: snapshot.price }));
+      setDraftSettings((current) => ({ ...current, startClosePrice: snapshot.price }));
       setCycle((current) => ({
         ...current,
         endingPrice: snapshot.price,
