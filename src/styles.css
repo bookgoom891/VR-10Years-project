@@ -197,6 +197,10 @@ h3 {
   align-items: start;
 }
 
+.section-title.small {
+  margin-bottom: 10px;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(180px, 1fr));
@@ -333,7 +337,15 @@ th {
   margin-bottom: 18px;
 }
 
-.store-summary span {
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.store-summary span,
+.summary-grid span {
   border: 1px solid #e1e7ed;
   border-radius: 8px;
   background: #f8fafb;
@@ -341,10 +353,25 @@ th {
   color: #5c6978;
 }
 
-.store-summary strong {
+.store-summary strong,
+.summary-grid strong {
   display: block;
   margin-top: 6px;
   color: #1d2733;
+}
+
+.table-input {
+  width: 110px;
+  min-height: 34px;
+  border: 1px solid #cbd5df;
+  border-radius: 6px;
+  background: #fbfcfd;
+  color: #18212b;
+  padding: 0 8px;
+}
+
+.table-input.memo {
+  width: 180px;
 }
 
 .date-field {
@@ -362,7 +389,8 @@ th {
   }
 
   .form-grid,
-  .store-summary {
+  .store-summary,
+  .summary-grid {
     grid-template-columns: repeat(2, minmax(180px, 1fr));
   }
 
@@ -386,7 +414,8 @@ th {
 
   .dashboard,
   .form-grid,
-  .store-summary {
+  .store-summary,
+  .summary-grid {
     grid-template-columns: 1fr;
   }
 

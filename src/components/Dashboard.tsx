@@ -1,9 +1,4 @@
-import type {
-  CycleInput,
-  CycleResult,
-  StoreSignalResult,
-  StrategySettings
-} from "../types";
+import type { CycleInput, CycleResult, StoreSignalResult, StrategySettings } from "../types";
 import { krw, money } from "./fields";
 
 interface Props {
@@ -15,7 +10,8 @@ interface Props {
 
 export default function Dashboard({ settings, cycle, result, storeSignal }: Props) {
   const cards = [
-    ["현재 V", money(cycle.previousV)],
+    ["현재 V 단계", cycle.vStage],
+    ["현재 적용 V", money(cycle.previousV)],
     ["새 V", money(result.newV)],
     ["하단 밴드", money(result.lowerBand)],
     ["상단 밴드", money(result.upperBand)],

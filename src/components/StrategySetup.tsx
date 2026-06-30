@@ -1,5 +1,6 @@
 import type { StrategySettings } from "../types";
-import { NumberField, TextField } from "./fields";
+import { calculateV0, calculateV1 } from "../utils/calculations";
+import { money, NumberField, TextField } from "./fields";
 
 interface Props {
   settings: StrategySettings;
@@ -22,43 +23,42 @@ export default function StrategySetup({
   onApplyToCycle,
   onRefreshExchangeRate
 }: Props) {
-  const update = <K extends keyof StrategySettings>(
-    key: K,
-    value: StrategySettings[K]
-  ) => {
+  const update = <K extends keyof StrategySettings>(key: K, value: StrategySettings[K]) => {
     onChange({ ...settings, [key]: value });
   };
+  const v0 = calculateV0(settings);
+  const v1 = calculateV1(settings);
 
   return (
     <section className="panel">
       <div className="section-title with-actions">
         <div>
           <h2>전략 설정</h2>
-          <p>
-            자주 바뀌지 않는 기본 전략값입니다. 수정 버튼을 누른 뒤 저장하면 다시 잠깁니다.
-          </p>
+          <p>기본 전략값입니다. 수정 버튼을 누른 뒤 저장하면 다시 잠깁니다.</p>
         </div>
         <div className="action-row compact">
           {!isEditing ? (
-            <button className="primary-action" type="button" onClick={onEdit}>
-              수정
-            </button>
+            <button className="primary-action" type="button" onClick={onEdit}>수정</button>
           ) : (
             <>
-              <button className="primary-action" type="button" onClick={onSave}>
-                저장
-              </button>
-              <button type="button" onClick={onCancel}>
-                취소
-              </button>
+              <button className="primary-action" type="button" onClick={onSave}>저장</button>
+              <button type="button" onClick={onCancel}>취소</button>
             </>
           )}
         </div>
       </div>
 
+      <div className="formula-box">
+        <strong>초기 V 설정</strong>
+        <p>V0 = 초기 평단가 × 총 주문 수량 = {money(v0)}</p>
+        <p>V1 = 시작 직전 종가 × 총 주문 수량 = {money(v1)}</p>
+      </div>
+
       <div className="form-grid">
         <TextField label="종목명" value={settings.symbol} disabled={!isEditing} onChange={(value) => update("symbol", value)} />
         <NumberField label="총 초기자본" value={settings.initialCapital} disabled={!isEditing} onChange={(value) => update("initialCapital", value)} />
+        <NumberField label="초기 평단가" value={settings.initialAveragePrice} disabled={!isEditing} step={0.01} onChange={(value) => update("initialAveragePrice", value)} />
+        <NumberField label="시작 직전 종가" value={settings.startClosePrice} disabled={!isEditing} step={0.01} onChange={(value) => update("startClosePrice", value)} />
         <NumberField label="총 주문 수량" value={settings.totalOrderQuantity} disabled={!isEditing} onChange={(value) => update("totalOrderQuantity", value)} suffix="주" />
         <NumberField label="초기 Pool" value={settings.initialPool} disabled={!isEditing} onChange={(value) => update("initialPool", value)} />
         <NumberField label="초기 STORE(S)" value={settings.initialStore} disabled={!isEditing} onChange={(value) => update("initialStore", value)} />
@@ -76,30 +76,16 @@ export default function StrategySetup({
 
       <div className="option-row">
         <label>
-          <input
-            type="checkbox"
-            checked={settings.useStore}
-            disabled={!isEditing}
-            onChange={(event) => update("useStore", event.target.checked)}
-          />
+          <input type="checkbox" checked={settings.useStore} disabled={!isEditing} onChange={(event) => update("useStore", event.target.checked)} />
           STORE 사용
         </label>
         <label>
-          <input
-            type="checkbox"
-            checked={settings.reflectStoreInV}
-            disabled={!isEditing}
-            onChange={(event) => update("reflectStoreInV", event.target.checked)}
-          />
+          <input type="checkbox" checked={settings.reflectStoreInV} disabled={!isEditing} onChange={(event) => update("reflectStoreInV", event.target.checked)} />
           STORE 투입금 V 반영
         </label>
         <label>
           STORE 투입 방식
-          <select
-            value={settings.storeMode}
-            disabled={!isEditing}
-            onChange={(event) => update("storeMode", event.target.value as StrategySettings["storeMode"])}
-          >
+          <select value={settings.storeMode} disabled={!isEditing} onChange={(event) => update("storeMode", event.target.value as StrategySettings["storeMode"])}>
             <option value="direct_buy">direct_buy</option>
             <option value="move_to_pool">move_to_pool</option>
           </select>
@@ -107,12 +93,8 @@ export default function StrategySetup({
       </div>
 
       <div className="action-row">
-        <button type="button" onClick={onApplyToCycle}>
-          전략 설정을 현재 사이클에 반영
-        </button>
-        <button type="button" onClick={onRefreshExchangeRate}>
-          USD/KRW 환율 가져오기
-        </button>
+        <button type="button" onClick={onApplyToCycle}>전략 설정을 현재 사이클에 반영</button>
+        <button type="button" onClick={onRefreshExchangeRate}>USD/KRW 환율 가져오기</button>
       </div>
     </section>
   );

@@ -3,13 +3,16 @@ import Dashboard from "./components/Dashboard";
 import StrategySetup from "./components/StrategySetup";
 import CycleCalculator from "./components/CycleCalculator";
 import OrderTables from "./components/OrderTables";
+import AdvanceCycle from "./components/AdvanceCycle";
 import StorePanel from "./components/StorePanel";
 import HistoryTable from "./components/HistoryTable";
 import {
   applySettingsToCycle,
   buildBuyOrders,
   buildSellOrders,
+  calculateAdvancePreview,
   calculateCycle,
+  createFillEntries,
   evaluateStoreSignal,
   validateInputs
 } from "./utils/calculations";
@@ -18,19 +21,25 @@ import { loadFromStorage, saveToStorage } from "./utils/storage";
 import type {
   AppTab,
   CycleInput,
+  FillEntry,
   HistoryRecord,
   StoreSignalInput,
-  StrategySettings
+  StrategySettings,
+  UndoSnapshot
 } from "./types";
 
 const settingsKey = "vr-rebalancing.settings";
 const cycleKey = "vr-rebalancing.cycle";
 const storeKey = "vr-rebalancing.store";
 const historyKey = "vr-rebalancing.history";
+const undoKey = "vr-rebalancing.undo";
+const fillsKey = "vr-rebalancing.fills";
 
 const defaultSettings: StrategySettings = {
   symbol: "TQQQ",
   initialCapital: 30000,
+  initialAveragePrice: 125,
+  startClosePrice: 125,
   totalOrderQuantity: 120,
   initialPool: 9000,
   initialStore: 6000,
@@ -60,7 +69,8 @@ const defaultCycle: CycleInput = {
   storeInjection: 0,
   exchangeRate: 1380,
   manualEndingEquity: 15000,
-  useManualEndingEquity: false
+  useManualEndingEquity: false,
+  vStage: "V1"
 };
 
 const defaultStore: StoreSignalInput = {
@@ -74,9 +84,22 @@ const tabs: Array<{ id: AppTab; label: string }> = [
   { id: "setup", label: "전략 설정" },
   { id: "cycle", label: "사이클 계산" },
   { id: "orders", label: "주문표" },
+  { id: "advance", label: "다음 사이클" },
   { id: "store", label: "STORE(S)" },
   { id: "history", label: "기록" }
 ];
+
+function normalizeHistory(records: HistoryRecord[]): HistoryRecord[] {
+  return records.map((record) => ({
+    ...record,
+    vStage: record.vStage ?? "V2_PLUS",
+    fills: record.fills ?? [],
+    poolBefore: record.poolBefore ?? record.pool,
+    poolAfter: record.poolAfter ?? record.pool,
+    sharesBefore: record.sharesBefore ?? record.shares,
+    sharesAfter: record.sharesAfter ?? record.shares
+  }));
+}
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("setup");
@@ -88,7 +111,13 @@ export default function App() {
   const [cycle, setCycle] = useState(() => loadFromStorage(cycleKey, defaultCycle));
   const [store, setStore] = useState(() => loadFromStorage(storeKey, defaultStore));
   const [history, setHistory] = useState<HistoryRecord[]>(() =>
-    loadFromStorage(historyKey, [] as HistoryRecord[])
+    normalizeHistory(loadFromStorage(historyKey, [] as HistoryRecord[]))
+  );
+  const [fillDrafts, setFillDrafts] = useState<FillEntry[]>(() =>
+    loadFromStorage(fillsKey, [] as FillEntry[])
+  );
+  const [undoSnapshot, setUndoSnapshot] = useState<UndoSnapshot | null>(() =>
+    loadFromStorage<UndoSnapshot | null>(undoKey, null)
   );
   const [memo, setMemo] = useState("");
   const [marketStatus, setMarketStatus] = useState(
@@ -99,34 +128,38 @@ export default function App() {
   useEffect(() => saveToStorage(cycleKey, cycle), [cycle]);
   useEffect(() => saveToStorage(storeKey, store), [store]);
   useEffect(() => saveToStorage(historyKey, history), [history]);
+  useEffect(() => saveToStorage(fillsKey, fillDrafts), [fillDrafts]);
+  useEffect(() => saveToStorage(undoKey, undoSnapshot), [undoSnapshot]);
 
   const result = useMemo(() => calculateCycle(settings, cycle), [settings, cycle]);
   const storeSignal = useMemo(() => evaluateStoreSignal(store), [store]);
   const buyOrders = useMemo(
-    () =>
-      buildBuyOrders(
-        result.lowerBand,
-        cycle.shares,
-        cycle.currentPool,
-        settings.orderUnit,
-        result.cyclePoolBudget
-      ),
+    () => buildBuyOrders(result.lowerBand, cycle.shares, cycle.currentPool, settings.orderUnit, result.cyclePoolBudget),
     [cycle.currentPool, cycle.shares, result.cyclePoolBudget, result.lowerBand, settings.orderUnit]
   );
   const sellOrders = useMemo(
-    () =>
-      buildSellOrders(
-        result.upperBand,
-        cycle.shares,
-        cycle.currentPool,
-        settings.orderUnit
-      ),
+    () => buildSellOrders(result.upperBand, cycle.shares, cycle.currentPool, settings.orderUnit),
     [cycle.currentPool, cycle.shares, result.upperBand, settings.orderUnit]
+  );
+  const advancePreview = useMemo(
+    () => calculateAdvancePreview(settings, cycle, fillDrafts),
+    [settings, cycle, fillDrafts]
   );
   const errors = useMemo(() => validateInputs(settings, cycle), [settings, cycle]);
 
+  useEffect(() => {
+    if (fillDrafts.length === 0 && (buyOrders.length > 0 || sellOrders.length > 0)) {
+      setFillDrafts(createFillEntries(buyOrders, sellOrders));
+    }
+  }, [buyOrders, sellOrders, fillDrafts.length]);
+
+  function resetFillDrafts() {
+    setFillDrafts(createFillEntries(buyOrders, sellOrders));
+  }
+
   function syncSettingsToCycle(sourceSettings = settings) {
     setCycle((current) => applySettingsToCycle(sourceSettings, current));
+    setFillDrafts([]);
     setMarketStatus("전략 설정값을 현재 사이클 입력값에 반영했습니다.");
   }
 
@@ -169,41 +202,88 @@ export default function App() {
         manualEndingEquity: snapshot.price * current.shares,
         useManualEndingEquity: false
       }));
-      setStore((current) => ({
-        ...current,
-        prevPrice: current.price,
-        price: snapshot.price
-      }));
-      setMarketStatus(
-        `${settings.symbol} 최근 종가 반영 완료: $${snapshot.price.toFixed(2)} (${snapshot.date}, ${snapshot.source})`
-      );
+      setStore((current) => ({ ...current, prevPrice: current.price, price: snapshot.price }));
+      setMarketStatus(`${settings.symbol} 최근 종가 반영 완료: $${snapshot.price.toFixed(2)} (${snapshot.date}, ${snapshot.source})`);
     } catch (error) {
       setMarketStatus(error instanceof Error ? error.message : "종가를 가져오지 못했습니다.");
     }
   }
 
-  function saveCycle() {
-    const record: HistoryRecord = {
+  function makeRecord(nextHistoryLength = history.length): HistoryRecord {
+    return {
       id: crypto.randomUUID(),
-      cycleNumber: history.length + 1,
+      cycleNumber: nextHistoryLength + 1,
       date: new Date().toISOString().slice(0, 10),
+      vStage: cycle.vStage,
       previousV: cycle.previousV,
-      newV: result.newV,
-      endingEquity: result.endingEquity,
-      lowerBand: result.lowerBand,
-      upperBand: result.upperBand,
-      shares: cycle.shares,
-      pool: cycle.currentPool,
+      newV: advancePreview.nextV,
+      endingEquity: advancePreview.endingEquity,
+      lowerBand: advancePreview.lowerBand,
+      upperBand: advancePreview.upperBand,
+      shares: advancePreview.sharesAfter,
+      sharesBefore: advancePreview.sharesBefore,
+      sharesAfter: advancePreview.sharesAfter,
+      pool: advancePreview.poolAfter,
+      poolBefore: advancePreview.poolBefore,
+      poolAfter: advancePreview.poolAfter,
       store: cycle.currentStore,
       contribution: cycle.contribution,
       storeInjection: cycle.storeInjection,
       exchangeRate: cycle.exchangeRate,
-      totalUsdAssets: result.totalUsdAssets,
-      totalKrwAssets: result.totalKrwAssets,
+      totalUsdAssets: advancePreview.endingEquity + advancePreview.poolAfter + cycle.currentStore,
+      totalKrwAssets: (advancePreview.endingEquity + advancePreview.poolAfter + cycle.currentStore) * cycle.exchangeRate,
+      fills: advancePreview.selectedFills,
       memo
     };
-    setHistory((current) => [record, ...current]);
+  }
+
+  function saveCycle() {
+    setHistory((current) => [makeRecord(current.length), ...current]);
     setMemo("");
+  }
+
+  function confirmAdvanceCycle() {
+    const snapshot: UndoSnapshot = {
+      settings,
+      cycle,
+      store,
+      history,
+      memo,
+      activeTab,
+      fillDrafts
+    };
+    const record = makeRecord(history.length);
+    const nextCycle: CycleInput = {
+      ...cycle,
+      previousV: advancePreview.nextV,
+      shares: advancePreview.sharesAfter,
+      currentPool: advancePreview.poolAfter,
+      manualEndingEquity: advancePreview.endingEquity,
+      useManualEndingEquity: false,
+      vStage: "V2_PLUS"
+    };
+
+    setUndoSnapshot(snapshot);
+    setHistory((current) => [record, ...current]);
+    setCycle(nextCycle);
+    setFillDrafts([]);
+    setMemo("");
+    setActiveTab("cycle");
+    setMarketStatus("다음 사이클로 넘어갔습니다. 되돌리기는 1회 가능합니다.");
+  }
+
+  function undoAdvanceCycle() {
+    if (!undoSnapshot) return;
+    setSettings(undoSnapshot.settings);
+    setDraftSettings(undoSnapshot.settings);
+    setCycle(undoSnapshot.cycle);
+    setStore(undoSnapshot.store);
+    setHistory(undoSnapshot.history);
+    setMemo(undoSnapshot.memo);
+    setFillDrafts(undoSnapshot.fillDrafts);
+    setActiveTab(undoSnapshot.activeTab);
+    setUndoSnapshot(null);
+    setMarketStatus("마지막 다음 사이클 확정을 되돌렸습니다.");
   }
 
   function confirmStoreInjection() {
@@ -219,10 +299,7 @@ export default function App() {
     setCycle((current) => ({
       ...current,
       currentStore: current.currentStore - amount,
-      currentPool:
-        settings.storeMode === "move_to_pool"
-          ? current.currentPool + amount
-          : current.currentPool,
+      currentPool: settings.storeMode === "move_to_pool" ? current.currentPool + amount : current.currentPool,
       storeInjection: amount,
       shares:
         settings.storeMode === "direct_buy" && current.endingPrice > 0
@@ -237,42 +314,30 @@ export default function App() {
         <div>
           <p className="eyebrow">TQQQ Value Rebalancing</p>
           <h1>VR 리밸런싱</h1>
-          <p className="notice">
-            이 앱은 개인 운용 계산 보조 도구이며 투자 판단과 주문 실행은 사용자의 책임입니다.
-          </p>
+          <p className="notice">이 앱은 개인 운용 계산 보조 도구이며 투자 판단과 주문 실행은 사용자의 책임입니다.</p>
         </div>
-        <div className="future-box">
-          실시간 API, 백테스트, 계좌 연동, 자동 주문은 추후 확장 영역
-        </div>
+        <div className="future-box">실시간 API, 백테스트, 계좌 연동, 자동 주문은 추후 확장 영역</div>
       </header>
 
       <Dashboard settings={settings} cycle={cycle} result={result} storeSignal={storeSignal} />
 
       <section className="market-toolbar">
-        <button type="button" onClick={() => syncSettingsToCycle()}>
-          전략 설정을 현재 사이클에 반영
-        </button>
+        <button type="button" onClick={() => syncSettingsToCycle()}>전략 설정을 현재 사이클에 반영</button>
         <button type="button" onClick={refreshExchangeRate}>USD/KRW 환율 가져오기</button>
         <button type="button" onClick={refreshTqqqClose}>{settings.symbol} 최근 종가 가져오기</button>
+        <button type="button" onClick={resetFillDrafts}>이전 주문표 다시 불러오기</button>
         <span>{marketStatus}</span>
       </section>
 
       {errors.length > 0 && (
         <section className="alert-panel">
-          {errors.map((error) => (
-            <p key={error}>{error}</p>
-          ))}
+          {errors.map((error) => <p key={error}>{error}</p>)}
         </section>
       )}
 
       <nav className="tabs" aria-label="화면 이동">
         {tabs.map((tab) => (
-          <button
-            className={activeTab === tab.id ? "active" : ""}
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-          >
+          <button className={activeTab === tab.id ? "active" : ""} key={tab.id} type="button" onClick={() => setActiveTab(tab.id)}>
             {tab.label}
           </button>
         ))}
@@ -290,43 +355,11 @@ export default function App() {
           onRefreshExchangeRate={refreshExchangeRate}
         />
       )}
-      {activeTab === "cycle" && (
-        <CycleCalculator
-          cycle={cycle}
-          result={result}
-          onChange={setCycle}
-          onRefreshClose={refreshTqqqClose}
-          onRefreshExchangeRate={refreshExchangeRate}
-        />
-      )}
-      {activeTab === "orders" && (
-        <OrderTables
-          settings={settings}
-          result={result}
-          buyOrders={buyOrders}
-          sellOrders={sellOrders}
-        />
-      )}
-      {activeTab === "store" && (
-        <StorePanel
-          settings={settings}
-          cycle={cycle}
-          store={store}
-          signal={storeSignal}
-          onStoreChange={setStore}
-          onConfirmInjection={confirmStoreInjection}
-        />
-      )}
-      {activeTab === "history" && (
-        <HistoryTable
-          history={history}
-          memo={memo}
-          onMemoChange={setMemo}
-          onSave={saveCycle}
-          onDelete={(id) => setHistory((records) => records.filter((record) => record.id !== id))}
-          onClear={() => setHistory([])}
-        />
-      )}
+      {activeTab === "cycle" && <CycleCalculator cycle={cycle} result={result} onChange={setCycle} onRefreshClose={refreshTqqqClose} onRefreshExchangeRate={refreshExchangeRate} />}
+      {activeTab === "orders" && <OrderTables settings={settings} result={result} buyOrders={buyOrders} sellOrders={sellOrders} />}
+      {activeTab === "advance" && <AdvanceCycle fills={fillDrafts} preview={advancePreview} canUndo={Boolean(undoSnapshot)} onChange={setFillDrafts} onConfirm={confirmAdvanceCycle} onUndo={undoAdvanceCycle} />}
+      {activeTab === "store" && <StorePanel settings={settings} cycle={cycle} store={store} signal={storeSignal} onStoreChange={setStore} onConfirmInjection={confirmStoreInjection} />}
+      {activeTab === "history" && <HistoryTable history={history} memo={memo} onMemoChange={setMemo} onSave={saveCycle} onDelete={(id) => setHistory((records) => records.filter((record) => record.id !== id))} onClear={() => setHistory([])} />}
     </div>
   );
 }

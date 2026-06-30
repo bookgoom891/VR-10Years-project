@@ -1,11 +1,28 @@
 import type {
+  AdvancePreview,
   CycleInput,
   CycleResult,
+  FillEntry,
   OrderRow,
   StoreSignalInput,
   StoreSignalResult,
-  StrategySettings
+  StrategySettings,
+  VStage
 } from "../types";
+
+export function calculateV0(settings: StrategySettings) {
+  return settings.initialAveragePrice * settings.totalOrderQuantity;
+}
+
+export function calculateV1(settings: StrategySettings) {
+  return settings.startClosePrice * settings.totalOrderQuantity;
+}
+
+export function vStageLabel(stage: VStage) {
+  if (stage === "V0") return "V0";
+  if (stage === "V1") return "V1";
+  return "V2+";
+}
 
 export function calculateCycle(
   settings: StrategySettings,
@@ -43,20 +60,22 @@ export function applySettingsToCycle(
   cycle: CycleInput
 ): CycleInput {
   const shares = Math.max(1, Math.floor(settings.totalOrderQuantity));
-  const initialEquity = cycle.endingPrice > 0 ? cycle.endingPrice * shares : cycle.previousV;
+  const v1 = calculateV1(settings);
 
   return {
     ...cycle,
-    previousV: initialEquity,
+    previousV: v1,
     shares,
+    endingPrice: settings.startClosePrice,
     currentPool: settings.initialPool,
     currentStore: settings.initialStore,
     contribution: settings.contribution,
     withdrawal: settings.withdrawal,
     exchangeRate: settings.exchangeRate,
-    manualEndingEquity: initialEquity,
+    manualEndingEquity: v1,
     storeInjection: 0,
-    useManualEndingEquity: false
+    useManualEndingEquity: false,
+    vStage: "V1"
   };
 }
 
@@ -82,14 +101,7 @@ export function buildBuyOrders(
     currentShares += orderUnit;
     currentPool -= poolChange;
     usedPool += poolChange;
-    rows.push({
-      step,
-      price,
-      quantity: orderUnit,
-      sharesAfter: currentShares,
-      poolChange,
-      poolAfter: currentPool
-    });
+    rows.push({ step, price, quantity: orderUnit, sharesAfter: currentShares, poolChange, poolAfter: currentPool });
   }
 
   return rows;
@@ -110,20 +122,81 @@ export function buildSellOrders(
     if (currentShares - orderUnit < orderUnit || currentShares <= 0) break;
     const price = upperBand / currentShares;
     const poolChange = price * orderUnit;
-
     currentShares -= orderUnit;
     currentPool += poolChange;
-    rows.push({
-      step,
-      price,
-      quantity: orderUnit,
-      sharesAfter: currentShares,
-      poolChange,
-      poolAfter: currentPool
-    });
+    rows.push({ step, price, quantity: orderUnit, sharesAfter: currentShares, poolChange, poolAfter: currentPool });
   }
 
   return rows;
+}
+
+export function createFillEntries(buyOrders: OrderRow[], sellOrders: OrderRow[]): FillEntry[] {
+  const buyEntries = buyOrders.map((row) => ({
+    id: `buy-${row.step}`,
+    side: "buy" as const,
+    source: "order" as const,
+    orderStep: row.step,
+    plannedPrice: row.price,
+    plannedQuantity: row.quantity,
+    selected: false,
+    actualPrice: row.price,
+    actualQuantity: row.quantity,
+    memo: ""
+  }));
+  const sellEntries = sellOrders.map((row) => ({
+    id: `sell-${row.step}`,
+    side: "sell" as const,
+    source: "order" as const,
+    orderStep: row.step,
+    plannedPrice: row.price,
+    plannedQuantity: row.quantity,
+    selected: false,
+    actualPrice: row.price,
+    actualQuantity: row.quantity,
+    memo: ""
+  }));
+  return [...buyEntries, ...sellEntries];
+}
+
+export function calculateAdvancePreview(
+  settings: StrategySettings,
+  cycle: CycleInput,
+  fills: FillEntry[]
+): AdvancePreview {
+  const selectedFills = fills.filter((fill) => fill.selected && fill.actualQuantity > 0 && fill.actualPrice > 0);
+  let sharesAfter = cycle.shares;
+  let poolAfter = cycle.currentPool;
+
+  for (const fill of selectedFills) {
+    const value = fill.actualPrice * fill.actualQuantity;
+    if (fill.side === "buy") {
+      sharesAfter += fill.actualQuantity;
+      poolAfter -= value;
+    } else {
+      sharesAfter -= fill.actualQuantity;
+      poolAfter += value;
+    }
+  }
+
+  const previewCycle: CycleInput = {
+    ...cycle,
+    shares: sharesAfter,
+    currentPool: poolAfter,
+    useManualEndingEquity: false
+  };
+  const result = calculateCycle(settings, previewCycle);
+
+  return {
+    selectedFills,
+    sharesBefore: cycle.shares,
+    sharesAfter,
+    poolBefore: cycle.currentPool,
+    poolAfter,
+    endingEquity: result.endingEquity,
+    nextV: result.newV,
+    lowerBand: result.lowerBand,
+    upperBand: result.upperBand
+  };
 }
 
 export function evaluateStoreSignal(input: StoreSignalInput): StoreSignalResult {
@@ -142,6 +215,9 @@ export function validateInputs(
   cycle: CycleInput
 ): string[] {
   const errors: string[] = [];
+  if (settings.initialAveragePrice <= 0) errors.push("초기 평단가는 0보다 커야 합니다.");
+  if (settings.startClosePrice <= 0) errors.push("시작 직전 종가는 0보다 커야 합니다.");
+  if (settings.totalOrderQuantity <= 0) errors.push("총 주문 수량은 0보다 커야 합니다.");
   if (settings.gValue <= 0) errors.push("G값은 0보다 커야 합니다.");
   if (settings.bandRate <= 0 || settings.bandRate >= 1) {
     errors.push("밴드 비율은 0보다 크고 1보다 작아야 합니다.");
