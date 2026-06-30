@@ -1,5 +1,6 @@
+import { useState } from "react";
 import type { CycleInput, CycleResult, StrategySettings } from "../types";
-import { krw, money, price, shares } from "./fields";
+import { krw, money, percent, price, shares } from "./fields";
 
 interface Props {
   settings: StrategySettings;
@@ -17,9 +18,17 @@ function MetricCard({ label, value }: { label: string; value: string }) {
 }
 
 export default function Dashboard({ settings, cycle, result }: Props) {
+  const [includeStoreInAssets, setIncludeStoreInAssets] = useState(true);
   const tqqqEquity = cycle.endingPrice * cycle.shares;
-  const totalUsdAssets = tqqqEquity + cycle.currentPool + cycle.currentStore;
-  const totalKrwAssets = totalUsdAssets * cycle.exchangeRate;
+  const totalUsdWithStore = tqqqEquity + cycle.currentPool + cycle.currentStore;
+  const totalUsdWithoutStore = tqqqEquity + cycle.currentPool;
+  const displayedTotalUsd = includeStoreInAssets ? totalUsdWithStore : totalUsdWithoutStore;
+  const displayedInitialCapital = includeStoreInAssets
+    ? settings.initialCapital
+    : settings.initialCapital - settings.initialStore;
+  const returnRate = displayedInitialCapital > 0
+    ? (displayedTotalUsd - displayedInitialCapital) / displayedInitialCapital
+    : 0;
 
   return (
     <section className="dashboard dashboard-grouped">
@@ -54,11 +63,22 @@ export default function Dashboard({ settings, cycle, result }: Props) {
       </div>
 
       <div className="dashboard-area asset-area">
-        <h2>STORE · 자산</h2>
+        <div className="area-heading">
+          <h2>STORE · 자산</h2>
+          <label className="asset-toggle">
+            <input
+              type="checkbox"
+              checked={includeStoreInAssets}
+              onChange={(event) => setIncludeStoreInAssets(event.target.checked)}
+            />
+            총자산에 STORE 포함
+          </label>
+        </div>
         <div className="metric-grid">
           <MetricCard label="현재 STORE(S)" value={money(cycle.currentStore)} />
-          <MetricCard label="달러 환산 총자산" value={money(totalUsdAssets)} />
-          <MetricCard label="원화 환산 총자산" value={krw(totalKrwAssets)} />
+          <MetricCard label={includeStoreInAssets ? "달러 총자산(STORE 포함)" : "달러 총자산(STORE 제외)"} value={money(displayedTotalUsd)} />
+          <MetricCard label={includeStoreInAssets ? "원화 총자산(STORE 포함)" : "원화 총자산(STORE 제외)"} value={krw(displayedTotalUsd * cycle.exchangeRate)} />
+          <MetricCard label={includeStoreInAssets ? "총자산 수익률(STORE 포함)" : "총자산 수익률(STORE 제외)"} value={percent(returnRate)} />
         </div>
       </div>
     </section>

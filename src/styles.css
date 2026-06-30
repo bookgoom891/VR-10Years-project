@@ -157,6 +157,27 @@ h3 {
   font-size: 1rem;
 }
 
+.area-heading {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.area-heading h2 {
+  margin-bottom: 0;
+}
+
+.asset-toggle {
+  display: inline-flex;
+  gap: 8px;
+  align-items: center;
+  color: #4e5e6e;
+  font-size: 0.9rem;
+}
+
 .metric-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(150px, 1fr));
