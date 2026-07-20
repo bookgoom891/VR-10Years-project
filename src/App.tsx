@@ -35,6 +35,7 @@ const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
 const today = new Date().toISOString().slice(0, 10);
+let hasAutoSyncedMarketData = false;
 
 const defaultSettings: StrategySettings = {
   symbol: "TQQQ",
@@ -151,6 +152,76 @@ export default function App() {
   useEffect(() => saveToStorage(historyKey, history), [history]);
   useEffect(() => saveToStorage(fillsKey, fillDrafts), [fillDrafts]);
   useEffect(() => saveToStorage(undoKey, undoSnapshot), [undoSnapshot]);
+
+  useEffect(() => {
+    if (hasAutoSyncedMarketData) return;
+    hasAutoSyncedMarketData = true;
+
+    let isActive = true;
+    const symbol = settings.symbol;
+    setMarketStatus(`${symbol} 현재 단가와 USD/KRW 환율을 자동 반영하는 중입니다...`);
+
+    async function syncMarketDataOnOpen() {
+      const [priceResult, exchangeResult] = await Promise.allSettled([
+        fetchLatestTqqqClose(symbol),
+        fetchUsdKrwRate()
+      ]);
+      if (!isActive) return;
+
+      const priceSnapshot = priceResult.status === "fulfilled" ? priceResult.value : null;
+      const exchangeSnapshot = exchangeResult.status === "fulfilled" ? exchangeResult.value : null;
+
+      if (priceSnapshot || exchangeSnapshot) {
+        setSettings((current) => ({
+          ...current,
+          ...(priceSnapshot ? { startClosePrice: priceSnapshot.price } : {}),
+          ...(exchangeSnapshot ? { exchangeRate: exchangeSnapshot.price } : {})
+        }));
+        setDraftSettings((current) => ({
+          ...current,
+          ...(priceSnapshot ? { startClosePrice: priceSnapshot.price } : {}),
+          ...(exchangeSnapshot ? { exchangeRate: exchangeSnapshot.price } : {})
+        }));
+        setCycle((current) => ({
+          ...current,
+          ...(priceSnapshot
+            ? {
+                previousV: current.vStage === "V1" ? priceSnapshot.price * current.shares : current.previousV,
+                endingPrice: priceSnapshot.price,
+                manualEndingEquity: priceSnapshot.price * current.shares,
+                useManualEndingEquity: false
+              }
+            : {}),
+          ...(exchangeSnapshot ? { exchangeRate: exchangeSnapshot.price } : {})
+        }));
+        if (priceSnapshot) {
+          setStore((current) => ({ ...current, prevPrice: current.price, price: priceSnapshot.price }));
+        }
+      }
+
+      const successMessages = [
+        priceSnapshot ? `${symbol} $${priceSnapshot.price.toFixed(2)}` : "",
+        exchangeSnapshot ? `USD/KRW ${exchangeSnapshot.price.toFixed(2)}원` : ""
+      ].filter(Boolean);
+      const failureMessages = [
+        priceResult.status === "rejected" ? priceResult.reason : null,
+        exchangeResult.status === "rejected" ? exchangeResult.reason : null
+      ]
+        .filter(Boolean)
+        .map((error) => (error instanceof Error ? error.message : String(error)));
+
+      setMarketStatus(
+        failureMessages.length === 0
+          ? `자동 반영 완료: ${successMessages.join(" / ")}`
+          : `일부 자동 반영 완료: ${successMessages.join(" / ") || "없음"} · 실패: ${failureMessages.join(" / ")}`
+      );
+    }
+
+    void syncMarketDataOnOpen();
+    return () => {
+      isActive = false;
+    };
+  }, []);
 
   const result = useMemo(() => calculateCycle(settings, cycle), [settings, cycle]);
   const storeSignal = useMemo(() => evaluateStoreSignal(store), [store]);
