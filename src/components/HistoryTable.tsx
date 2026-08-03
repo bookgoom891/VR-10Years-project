@@ -11,8 +11,8 @@ interface Props {
 }
 
 export default function HistoryTable({ history, memo, onMemoChange, onSave, onDelete, onClear }: Props) {
-  function vLabel(record: HistoryRecord) {
-    return `V${record.nStage}`;
+  function stageLabel(index: number) {
+    return `${Math.max(2, history.length - index + 1)}단계`;
   }
 
   function exportJson() {
@@ -29,14 +29,14 @@ export default function HistoryTable({ history, memo, onMemoChange, onSave, onDe
     <section className="panel">
       <div className="section-title">
         <h2>기록</h2>
-        <p>사이클 확정 기록과 수동 저장 기록을 localStorage에 보관합니다.</p>
+        <p>확정한 단계별 V값과 밴드, 자산 변화를 저장합니다.</p>
       </div>
       <label className="field full">
         <span>메모</span>
-        <textarea value={memo} onChange={(event) => onMemoChange(event.target.value)} placeholder="이번 사이클 메모" />
+        <textarea value={memo} onChange={(event) => onMemoChange(event.target.value)} placeholder="이번 단계 메모" />
       </label>
       <div className="action-row">
-        <button className="primary-action" type="button" onClick={onSave}>이번 사이클 저장</button>
+        <button className="primary-action" type="button" onClick={onSave}>현재 단계 저장</button>
         <button type="button" onClick={exportJson}>JSON 내보내기</button>
         <button type="button" onClick={onClear}>기록 전체 삭제</button>
       </div>
@@ -44,30 +44,28 @@ export default function HistoryTable({ history, memo, onMemoChange, onSave, onDe
         <table>
           <thead>
             <tr>
-              <th>사이클</th>
-              <th>날짜</th>
-              <th>V</th>
+              <th>단계</th>
+              <th>사이클 수행일</th>
               <th>V값</th>
               <th>E</th>
-              <th>하단밴드</th>
-              <th>상단밴드</th>
-              <th>수량 전/후</th>
-              <th>Pool 전/후</th>
+              <th>하단 밴드</th>
+              <th>상단 밴드</th>
+              <th>수량 전 / 후</th>
+              <th>Pool 전 / 후</th>
               <th>STORE(S)</th>
               <th>체결</th>
               <th>환율</th>
-              <th>총자산 USD</th>
-              <th>총자산 KRW</th>
+              <th>총자산(USD)</th>
+              <th>총자산(KRW)</th>
               <th>메모</th>
               <th>삭제</th>
             </tr>
           </thead>
           <tbody>
-            {history.map((record) => (
+            {history.map((record, index) => (
               <tr key={record.id}>
-                <td>{record.cycleNumber}</td>
+                <td>{stageLabel(index)}</td>
                 <td>{record.date}</td>
-                <td>{vLabel(record)}</td>
                 <td>{money(record.newV)}</td>
                 <td>{money(record.endingEquity)}</td>
                 <td>{money(record.lowerBand)}</td>
@@ -85,7 +83,7 @@ export default function HistoryTable({ history, memo, onMemoChange, onSave, onDe
             ))}
             {history.length === 0 && (
               <tr>
-                <td colSpan={16}>저장된 사이클 기록이 없습니다.</td>
+                <td colSpan={15}>저장된 사이클 기록이 없습니다.</td>
               </tr>
             )}
           </tbody>
