@@ -55,7 +55,7 @@ export default function CycleCalculator({
       <div className="formula-box">
         <strong>계산 결과</strong>
         <p>
-          E {money(result.endingEquity)} · 새 V {money(result.newV)} · 하단 {money(result.lowerBand)} · 상단 {money(result.upperBand)}
+          E {money(result.endingEquity)} · 다음 사이클 예상 V {money(result.newV)} · 현재 V 기준 하단 {money(result.lowerBand)} · 현재 V 기준 상단 {money(result.upperBand)}
         </p>
         <p>
           총 전략 자산 {money(result.totalUsdAssets)} · 원화 참고 {krw(result.totalKrwAssets)}

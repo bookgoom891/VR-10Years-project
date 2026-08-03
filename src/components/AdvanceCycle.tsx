@@ -160,9 +160,9 @@ export default function AdvanceCycle({
         <span>사이클 당 인출금 <strong>{money(preview.withdrawal)}</strong></span>
         <span>최종 다음 Pool <strong>{money(preview.poolAfter)}</strong></span>
         <span>이번 사이클 E <strong>{money(preview.endingEquity)}</strong></span>
-        <span>다음 V <strong>{money(preview.nextV)}</strong></span>
-        <span>다음 하단 밴드 <strong>{money(preview.lowerBand)}</strong></span>
-        <span>다음 상단 밴드 <strong>{money(preview.upperBand)}</strong></span>
+        <span>다음 사이클 예상 V <strong>{money(preview.nextV)}</strong></span>
+        <span>현재 V 기준 하단 밴드 <strong>{money(preview.lowerBand)}</strong></span>
+        <span>현재 V 기준 상단 밴드 <strong>{money(preview.upperBand)}</strong></span>
       </div>
 
       <div className="formula-box">

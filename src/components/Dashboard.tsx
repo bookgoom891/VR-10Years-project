@@ -36,9 +36,9 @@ export default function Dashboard({ settings, cycle, result }: Props) {
         <h2>V값</h2>
         <div className="metric-grid">
           <MetricCard label="현재 적용 V" value={money(cycle.previousV)} />
-          <MetricCard label="새 V" value={money(result.newV)} />
-          <MetricCard label="하단 밴드" value={money(result.lowerBand)} />
-          <MetricCard label="상단 밴드" value={money(result.upperBand)} />
+          <MetricCard label="다음 사이클 예상 V" value={money(result.newV)} />
+          <MetricCard label="현재 V 기준 하단 밴드" value={money(result.lowerBand)} />
+          <MetricCard label="현재 V 기준 상단 밴드" value={money(result.upperBand)} />
         </div>
       </div>
 

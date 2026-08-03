@@ -44,8 +44,8 @@ export function calculateCycle(
     input.contribution +
     storeInjectionForV -
     input.withdrawal;
-  const lowerBand = newV * (1 - settings.bandRate);
-  const upperBand = newV * (1 + settings.bandRate);
+  const lowerBand = input.previousV * (1 - settings.bandRate);
+  const upperBand = input.previousV * (1 + settings.bandRate);
   const cyclePoolBudget = input.currentPool * settings.cyclePoolUseLimit;
   const totalUsdAssets = endingEquity + input.currentPool + input.currentStore;
 

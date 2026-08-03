@@ -12,9 +12,9 @@ function copyText(settings: StrategySettings, result: CycleResult, buyOrders: Or
   const buyLines = buyOrders.map((row) => `${row.step}차: ${price(row.price)} / ${row.quantity}주`);
   const sellLines = sellOrders.map((row) => `${row.step}차: ${price(row.price)} / ${row.quantity}주`);
   const text = `${settings.symbol} VR 주문표
-새 V: ${money(result.newV)}
-하단 밴드: ${money(result.lowerBand)}
-상단 밴드: ${money(result.upperBand)}
+다음 사이클 예상 V: ${money(result.newV)}
+현재 V 기준 하단 밴드: ${money(result.lowerBand)}
+현재 V 기준 상단 밴드: ${money(result.upperBand)}
 
 매수 예약
 ${buyLines.join("\n") || "없음"}
