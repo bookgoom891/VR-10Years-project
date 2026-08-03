@@ -35,6 +35,7 @@ const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
 const today = new Date().toISOString().slice(0, 10);
+const initialNStage = 3;
 let hasAutoSyncedMarketData = false;
 
 const defaultSettings: StrategySettings = {
@@ -62,7 +63,7 @@ const defaultSettings: StrategySettings = {
 };
 
 const defaultCycle: CycleInput = {
-  nStage: 0,
+  nStage: initialNStage,
   previousV: 15000,
   shares: 120,
   endingPrice: 125,
@@ -115,7 +116,7 @@ function cyclePeriod(settings: StrategySettings) {
 function normalizeHistory(records: HistoryRecord[]): HistoryRecord[] {
   return records.map((record) => ({
     ...record,
-    nStage: record.nStage ?? Math.max((record.cycleNumber ?? 1) - 1, 0),
+    nStage: Math.max(record.nStage ?? record.cycleNumber ?? initialNStage, initialNStage),
     vStage: record.vStage ?? "V2_PLUS",
     fills: record.fills ?? [],
     poolBefore: record.poolBefore ?? record.pool,
@@ -125,6 +126,13 @@ function normalizeHistory(records: HistoryRecord[]): HistoryRecord[] {
   }));
 }
 
+function normalizeCycle(cycle: CycleInput): CycleInput {
+  return {
+    ...cycle,
+    nStage: Math.max(cycle.nStage ?? initialNStage, initialNStage)
+  };
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("setup");
   const [settings, setSettings] = useState(() =>
@@ -132,7 +140,7 @@ export default function App() {
   );
   const [draftSettings, setDraftSettings] = useState(settings);
   const [isStrategyEditing, setIsStrategyEditing] = useState(false);
-  const [cycle, setCycle] = useState(() => loadFromStorage(cycleKey, defaultCycle));
+  const [cycle, setCycle] = useState(() => normalizeCycle(loadFromStorage(cycleKey, defaultCycle)));
   const [store, setStore] = useState(() => loadFromStorage(storeKey, defaultStore));
   const [history, setHistory] = useState<HistoryRecord[]>(() =>
     normalizeHistory(loadFromStorage(historyKey, [] as HistoryRecord[]))
@@ -252,7 +260,7 @@ export default function App() {
   }
 
   function syncSettingsToCycle(sourceSettings = settings) {
-    setCycle((current) => applySettingsToCycle(sourceSettings, current));
+    setCycle((current) => normalizeCycle(applySettingsToCycle(sourceSettings, current)));
     setFillDrafts([]);
     setMarketStatus("전략 설정값을 현재 사이클 입력값에 반영했습니다.");
   }
@@ -378,7 +386,7 @@ export default function App() {
     if (!undoSnapshot) return;
     setSettings(undoSnapshot.settings);
     setDraftSettings(undoSnapshot.settings);
-    setCycle(undoSnapshot.cycle);
+    setCycle(normalizeCycle(undoSnapshot.cycle));
     setStore(undoSnapshot.store);
     setHistory(undoSnapshot.history);
     setMemo(undoSnapshot.memo);
@@ -418,7 +426,7 @@ export default function App() {
           <div className="title-row">
             <h1>VR 리밸런싱</h1>
             <div className="v-stage-badge">
-              <span>현재 N단계</span>
+              <span>{`현재(${cycle.nStage})단계`}</span>
               <strong>{`V(${cycle.nStage})단계`}</strong>
             </div>
             <div className="period-badge">

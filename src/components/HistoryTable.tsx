@@ -11,6 +11,10 @@ interface Props {
 }
 
 export default function HistoryTable({ history, memo, onMemoChange, onSave, onDelete, onClear }: Props) {
+  function vLabel(record: HistoryRecord) {
+    return `V${record.nStage}`;
+  }
+
   function exportJson() {
     const blob = new Blob([JSON.stringify(history, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -42,12 +46,11 @@ export default function HistoryTable({ history, memo, onMemoChange, onSave, onDe
             <tr>
               <th>사이클</th>
               <th>날짜</th>
-              <th>N 단계</th>
-              <th>previousV</th>
-              <th>newV</th>
+              <th>V</th>
+              <th>V값</th>
               <th>E</th>
-              <th>하단</th>
-              <th>상단</th>
+              <th>하단밴드</th>
+              <th>상단밴드</th>
               <th>수량 전/후</th>
               <th>Pool 전/후</th>
               <th>STORE(S)</th>
@@ -64,8 +67,7 @@ export default function HistoryTable({ history, memo, onMemoChange, onSave, onDe
               <tr key={record.id}>
                 <td>{record.cycleNumber}</td>
                 <td>{record.date}</td>
-                <td>{`V(${record.nStage})단계`}</td>
-                <td>{money(record.previousV)}</td>
+                <td>{vLabel(record)}</td>
                 <td>{money(record.newV)}</td>
                 <td>{money(record.endingEquity)}</td>
                 <td>{money(record.lowerBand)}</td>
@@ -83,7 +85,7 @@ export default function HistoryTable({ history, memo, onMemoChange, onSave, onDe
             ))}
             {history.length === 0 && (
               <tr>
-                <td colSpan={17}>저장된 사이클 기록이 없습니다.</td>
+                <td colSpan={16}>저장된 사이클 기록이 없습니다.</td>
               </tr>
             )}
           </tbody>

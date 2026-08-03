@@ -69,7 +69,7 @@ export function applySettingsToCycle(
 
   return {
     ...cycle,
-    nStage: 0,
+    nStage: Math.max(cycle.nStage ?? 3, 3),
     previousV: v1,
     shares,
     endingPrice: settings.startClosePrice,
