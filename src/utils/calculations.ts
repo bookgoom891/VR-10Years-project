@@ -69,6 +69,7 @@ export function applySettingsToCycle(
 
   return {
     ...cycle,
+    nStage: 0,
     previousV: v1,
     shares,
     endingPrice: settings.startClosePrice,

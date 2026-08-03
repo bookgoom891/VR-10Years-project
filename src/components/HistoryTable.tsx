@@ -42,7 +42,7 @@ export default function HistoryTable({ history, memo, onMemoChange, onSave, onDe
             <tr>
               <th>사이클</th>
               <th>날짜</th>
-              <th>V 단계</th>
+              <th>N 단계</th>
               <th>previousV</th>
               <th>newV</th>
               <th>E</th>
@@ -64,7 +64,7 @@ export default function HistoryTable({ history, memo, onMemoChange, onSave, onDe
               <tr key={record.id}>
                 <td>{record.cycleNumber}</td>
                 <td>{record.date}</td>
-                <td>{record.vStage}</td>
+                <td>{`V(${record.nStage})단계`}</td>
                 <td>{money(record.previousV)}</td>
                 <td>{money(record.newV)}</td>
                 <td>{money(record.endingEquity)}</td>

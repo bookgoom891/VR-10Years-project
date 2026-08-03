@@ -62,6 +62,7 @@ const defaultSettings: StrategySettings = {
 };
 
 const defaultCycle: CycleInput = {
+  nStage: 0,
   previousV: 15000,
   shares: 120,
   endingPrice: 125,
@@ -114,6 +115,7 @@ function cyclePeriod(settings: StrategySettings) {
 function normalizeHistory(records: HistoryRecord[]): HistoryRecord[] {
   return records.map((record) => ({
     ...record,
+    nStage: record.nStage ?? Math.max((record.cycleNumber ?? 1) - 1, 0),
     vStage: record.vStage ?? "V2_PLUS",
     fills: record.fills ?? [],
     poolBefore: record.poolBefore ?? record.pool,
@@ -309,6 +311,7 @@ export default function App() {
       id: crypto.randomUUID(),
       cycleNumber: nextHistoryLength + 1,
       date: new Date().toISOString().slice(0, 10),
+      nStage: cycle.nStage,
       vStage: cycle.vStage,
       previousV: cycle.previousV,
       newV: advancePreview.nextV,
@@ -352,6 +355,7 @@ export default function App() {
     const nextCycle: CycleInput = {
       ...cycle,
       previousV: advancePreview.nextV,
+      nStage: cycle.nStage + 1,
       shares: advancePreview.sharesAfter,
       currentPool: advancePreview.poolAfter,
       manualEndingEquity: advancePreview.endingEquity,
@@ -414,8 +418,8 @@ export default function App() {
           <div className="title-row">
             <h1>VR 리밸런싱</h1>
             <div className="v-stage-badge">
-              <span>현재 V 단계</span>
-              <strong>{cycle.vStage}</strong>
+              <span>현재 N단계</span>
+              <strong>{`V(${cycle.nStage})단계`}</strong>
             </div>
             <div className="period-badge">
               <span>현재 사이클</span>

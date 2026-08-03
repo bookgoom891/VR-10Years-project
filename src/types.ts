@@ -28,6 +28,7 @@ export interface StrategySettings {
 }
 
 export interface CycleInput {
+  nStage: number;
   previousV: number;
   shares: number;
   endingPrice: number;
@@ -109,6 +110,7 @@ export interface HistoryRecord {
   id: string;
   cycleNumber: number;
   date: string;
+  nStage: number;
   vStage: VStage;
   previousV: number;
   newV: number;
