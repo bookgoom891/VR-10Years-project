@@ -9,8 +9,8 @@ interface Props {
 }
 
 function copyText(settings: StrategySettings, result: CycleResult, buyOrders: OrderRow[], sellOrders: OrderRow[]) {
-  const buyLines = buyOrders.map((row) => `${row.step}차: ${price(row.price)} / ${row.quantity}주`);
-  const sellLines = sellOrders.map((row) => `${row.step}차: ${price(row.price)} / ${row.quantity}주`);
+  const buyLines = buyOrders.map((row) => `${row.step}차: ${price(row.price)} / ${shares(row.quantity)}주`);
+  const sellLines = sellOrders.map((row) => `${row.step}차: ${price(row.price)} / ${shares(row.quantity)}주`);
   const text = `${settings.symbol} VR 주문표
 다음 사이클 예상 V: ${money(result.newV)}
 현재 V 기준 하단 밴드: ${money(result.lowerBand)}
@@ -69,7 +69,7 @@ export default function OrderTables({ settings, result, buyOrders, sellOrders }:
     <section className="panel">
       <div className="section-title">
         <h2>주문표</h2>
-        <p>매수표는 이번 사이클 Pool 사용 가능액 안에서 최대 10줄까지 생성됩니다.</p>
+        <p>매수표와 매도표는 사용 가능 금액과 보유 수량을 최대 10차로 나누어 생성됩니다.</p>
       </div>
       <div className="split-grid">
         <OrderTable title="매수 예약표" rows={buyOrders} type="buy" />

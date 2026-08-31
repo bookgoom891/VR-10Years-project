@@ -23,6 +23,12 @@ function roundToTwo(value: number) {
   return Math.round(value * 100) / 100;
 }
 
+function roundDownToUnit(value: number, unit: number) {
+  if (!Number.isFinite(value) || value <= 0) return 0;
+  const safeUnit = Number.isFinite(unit) && unit > 0 ? unit : 0.01;
+  return roundToTwo(Math.floor(value / safeUnit) * safeUnit);
+}
+
 export function vStageLabel(stage: VStage) {
   if (stage === "V0") return "V0";
   if (stage === "V1") return "V1";
@@ -101,13 +107,21 @@ export function buildBuyOrders(
   for (let step = 1; step <= maxRows; step += 1) {
     if (currentShares <= 0) break;
     const price = lowerBand / currentShares;
-    const poolChange = price * orderUnit;
-    if (usedPool + poolChange > cyclePoolBudget || poolChange > currentPool) break;
+    const remainingRows = maxRows - step + 1;
+    const remainingBudget = Math.min(cyclePoolBudget - usedPool, currentPool);
+    const affordableQuantity = roundDownToUnit(remainingBudget / price, orderUnit);
+    const targetQuantity = roundDownToUnit(remainingBudget / remainingRows / price, orderUnit);
+    const quantity = Math.min(
+      affordableQuantity,
+      Math.max(orderUnit, targetQuantity)
+    );
+    const poolChange = price * quantity;
+    if (quantity <= 0 || usedPool + poolChange > cyclePoolBudget || poolChange > currentPool) break;
 
-    currentShares += orderUnit;
+    currentShares += quantity;
     currentPool -= poolChange;
     usedPool += poolChange;
-    rows.push({ step, price, quantity: orderUnit, sharesAfter: currentShares, poolChange, poolAfter: currentPool });
+    rows.push({ step, price, quantity, sharesAfter: currentShares, poolChange, poolAfter: currentPool });
   }
 
   return rows;
@@ -127,10 +141,19 @@ export function buildSellOrders(
   for (let step = 1; step <= maxRows; step += 1) {
     if (currentShares - orderUnit < orderUnit || currentShares <= 0) break;
     const price = upperBand / currentShares;
-    const poolChange = price * orderUnit;
-    currentShares -= orderUnit;
+    const remainingRows = maxRows - step + 1;
+    const sellableQuantity = roundDownToUnit(currentShares - orderUnit, orderUnit);
+    const targetQuantity = roundDownToUnit(sellableQuantity / remainingRows, orderUnit);
+    const quantity = Math.min(
+      sellableQuantity,
+      Math.max(orderUnit, targetQuantity)
+    );
+    const poolChange = price * quantity;
+    if (quantity <= 0) break;
+
+    currentShares -= quantity;
     currentPool += poolChange;
-    rows.push({ step, price, quantity: orderUnit, sharesAfter: currentShares, poolChange, poolAfter: currentPool });
+    rows.push({ step, price, quantity, sharesAfter: currentShares, poolChange, poolAfter: currentPool });
   }
 
   return rows;
