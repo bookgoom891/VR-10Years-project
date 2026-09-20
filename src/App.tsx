@@ -18,6 +18,7 @@ import {
 } from "./utils/calculations";
 import { fetchLatestTqqqClose, fetchUsdKrwRate } from "./utils/marketData";
 import { loadFromStorage, saveToStorage } from "./utils/storage";
+import { DEFAULT_CYCLE_CONTRIBUTION } from "./utils/constants";
 import type {
   AppTab,
   CycleInput,
@@ -34,6 +35,8 @@ const storeKey = "vr-rebalancing.store";
 const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
+const contributionVersionKey = "vr-rebalancing.contribution-version";
+const contributionVersion = "1";
 const today = new Date().toISOString().slice(0, 10);
 const initialNStage = 3;
 let hasAutoSyncedMarketData = false;
@@ -50,7 +53,7 @@ const defaultSettings: StrategySettings = {
   bandRate: 0.15,
   gValue: 10,
   cycleDays: 14,
-  contribution: 500,
+  contribution: DEFAULT_CYCLE_CONTRIBUTION,
   withdrawal: 0,
   cyclePoolUseLimit: 0.4,
   orderUnit: 2,
@@ -69,7 +72,7 @@ const defaultCycle: CycleInput = {
   endingPrice: 125,
   currentPool: 9000,
   currentStore: 6000,
-  contribution: 500,
+  contribution: DEFAULT_CYCLE_CONTRIBUTION,
   withdrawal: 0,
   storeInjection: 0,
   exchangeRate: 1380,
@@ -133,14 +136,38 @@ function normalizeCycle(cycle: CycleInput): CycleInput {
   };
 }
 
+function needsContributionMigration() {
+  try {
+    return localStorage.getItem(contributionVersionKey) !== contributionVersion;
+  } catch {
+    return true;
+  }
+}
+
+const migrateStoredContribution = needsContributionMigration();
+
+function loadInitialSettings() {
+  const stored = loadFromStorage(settingsKey, defaultSettings);
+  return migrateStoredContribution
+    ? { ...stored, contribution: DEFAULT_CYCLE_CONTRIBUTION }
+    : stored;
+}
+
+function loadInitialCycle() {
+  const stored = loadFromStorage(cycleKey, defaultCycle);
+  return normalizeCycle(
+    migrateStoredContribution
+      ? { ...stored, contribution: DEFAULT_CYCLE_CONTRIBUTION }
+      : stored
+  );
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("setup");
-  const [settings, setSettings] = useState(() =>
-    loadFromStorage(settingsKey, defaultSettings)
-  );
+  const [settings, setSettings] = useState(loadInitialSettings);
   const [draftSettings, setDraftSettings] = useState(settings);
   const [isStrategyEditing, setIsStrategyEditing] = useState(false);
-  const [cycle, setCycle] = useState(() => normalizeCycle(loadFromStorage(cycleKey, defaultCycle)));
+  const [cycle, setCycle] = useState(loadInitialCycle);
   const [store, setStore] = useState(() => loadFromStorage(storeKey, defaultStore));
   const [history, setHistory] = useState<HistoryRecord[]>(() =>
     normalizeHistory(loadFromStorage(historyKey, [] as HistoryRecord[]))
@@ -162,6 +189,9 @@ export default function App() {
   useEffect(() => saveToStorage(historyKey, history), [history]);
   useEffect(() => saveToStorage(fillsKey, fillDrafts), [fillDrafts]);
   useEffect(() => saveToStorage(undoKey, undoSnapshot), [undoSnapshot]);
+  useEffect(() => {
+    localStorage.setItem(contributionVersionKey, contributionVersion);
+  }, []);
 
   useEffect(() => {
     if (hasAutoSyncedMarketData) return;
@@ -366,6 +396,7 @@ export default function App() {
       nStage: cycle.nStage + 1,
       shares: advancePreview.sharesAfter,
       currentPool: advancePreview.poolAfter,
+      contribution: DEFAULT_CYCLE_CONTRIBUTION,
       manualEndingEquity: advancePreview.endingEquity,
       useManualEndingEquity: false,
       vStage: "V2_PLUS"

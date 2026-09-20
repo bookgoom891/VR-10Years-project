@@ -9,6 +9,7 @@ import type {
   StrategySettings,
   VStage
 } from "../types";
+import { DEFAULT_CYCLE_CONTRIBUTION } from "./constants";
 
 export function calculateV0(settings: StrategySettings) {
   return settings.initialAveragePrice * settings.totalOrderQuantity;
@@ -81,7 +82,7 @@ export function applySettingsToCycle(
     endingPrice: settings.startClosePrice,
     currentPool: settings.initialPool,
     currentStore: settings.initialStore,
-    contribution: settings.contribution,
+    contribution: DEFAULT_CYCLE_CONTRIBUTION,
     withdrawal: settings.withdrawal,
     exchangeRate: settings.exchangeRate,
     manualEndingEquity: v1,
