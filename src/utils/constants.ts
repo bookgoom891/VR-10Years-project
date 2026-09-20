@@ -1,1 +1,0 @@
-export const DEFAULT_CYCLE_CONTRIBUTION = 140;

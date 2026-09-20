@@ -9,7 +9,6 @@ import type {
   StrategySettings,
   VStage
 } from "../types";
-import { DEFAULT_CYCLE_CONTRIBUTION } from "./constants";
 
 export function calculateV0(settings: StrategySettings) {
   return settings.initialAveragePrice * settings.totalOrderQuantity;
@@ -53,14 +52,16 @@ export function calculateCycle(
     input.withdrawal;
   const lowerBand = input.previousV * (1 - settings.bandRate);
   const upperBand = input.previousV * (1 + settings.bandRate);
-  const cyclePoolBudget = input.currentPool * settings.cyclePoolUseLimit;
-  const totalUsdAssets = endingEquity + input.currentPool + input.currentStore;
+  const adjustedPool = input.currentPool + input.contribution - input.withdrawal;
+  const cyclePoolBudget = Math.max(0, adjustedPool) * settings.cyclePoolUseLimit;
+  const totalUsdAssets = endingEquity + adjustedPool + input.currentStore;
 
   return {
     endingEquity,
     newV,
     lowerBand,
     upperBand,
+    adjustedPool,
     cyclePoolBudget,
     totalUsdAssets,
     totalKrwAssets: totalUsdAssets * input.exchangeRate
@@ -82,7 +83,7 @@ export function applySettingsToCycle(
     endingPrice: settings.startClosePrice,
     currentPool: settings.initialPool,
     currentStore: settings.initialStore,
-    contribution: DEFAULT_CYCLE_CONTRIBUTION,
+    contribution: settings.contribution,
     withdrawal: settings.withdrawal,
     exchangeRate: settings.exchangeRate,
     manualEndingEquity: v1,

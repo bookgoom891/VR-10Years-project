@@ -48,6 +48,7 @@ export interface CycleResult {
   newV: number;
   lowerBand: number;
   upperBand: number;
+  adjustedPool: number;
   cyclePoolBudget: number;
   totalUsdAssets: number;
   totalKrwAssets: number;

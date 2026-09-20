@@ -204,6 +204,29 @@ h3 {
   font-size: 1.18rem;
 }
 
+.editable-metric-card label {
+  display: block;
+}
+
+.metric-input-wrap {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+}
+
+.metric-input-wrap input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #cbd5df;
+  border-radius: 6px;
+  background: #fff;
+  color: #18212b;
+  padding: 8px 10px;
+  font: inherit;
+  font-weight: 700;
+}
+
 .metric-card.signal {
   grid-column: span 2;
 }

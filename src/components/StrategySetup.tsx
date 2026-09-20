@@ -79,6 +79,7 @@ export default function StrategySetup({
           <NumberField label="총 주문 수량" value={settings.totalOrderQuantity} disabled={!isEditing} onChange={(value) => update("totalOrderQuantity", value)} suffix="주" />
           <NumberField label="초기 평단가" value={settings.initialAveragePrice} disabled={!isEditing} step={0.01} onChange={(value) => update("initialAveragePrice", value)} />
           <NumberField label="초기 POOL" value={settings.initialPool} disabled={!isEditing} onChange={(value) => update("initialPool", value)} />
+          <NumberField label="사이클 당 적립금" value={settings.contribution} disabled={!isEditing} onChange={(value) => update("contribution", value)} />
           <NumberField label="사이클 당 인출금" value={settings.withdrawal} disabled={!isEditing} onChange={(value) => update("withdrawal", value)} />
         </SettingsSection>
 

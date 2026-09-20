@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { CycleInput, CycleResult, StrategySettings } from "../types";
-import { krw, money, percent, price, shares } from "./fields";
+import { krw, money, NumericInput, percent, price, shares } from "./fields";
 
 interface Props {
   settings: StrategySettings;
   cycle: CycleInput;
   result: CycleResult;
+  onCycleChange: (cycle: CycleInput) => void;
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
@@ -17,11 +18,33 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function Dashboard({ settings, cycle, result }: Props) {
+function EditableMetricCard({
+  label,
+  value,
+  onChange
+}: {
+  label: string;
+  value: number;
+  onChange: (value: number) => void;
+}) {
+  return (
+    <article className="metric-card editable-metric-card">
+      <label>
+        <span>{label}</span>
+        <div className="metric-input-wrap">
+          <strong>$</strong>
+          <NumericInput value={value} onChange={onChange} />
+        </div>
+      </label>
+    </article>
+  );
+}
+
+export default function Dashboard({ settings, cycle, result, onCycleChange }: Props) {
   const [includeStoreInAssets, setIncludeStoreInAssets] = useState(true);
   const tqqqEquity = cycle.endingPrice * cycle.shares;
-  const totalUsdWithStore = tqqqEquity + cycle.currentPool + cycle.currentStore;
-  const totalUsdWithoutStore = tqqqEquity + cycle.currentPool;
+  const totalUsdWithStore = tqqqEquity + result.adjustedPool + cycle.currentStore;
+  const totalUsdWithoutStore = tqqqEquity + result.adjustedPool;
   const displayedTotalUsd = includeStoreInAssets ? totalUsdWithStore : totalUsdWithoutStore;
   const displayedInitialCapital = includeStoreInAssets
     ? settings.initialCapital
@@ -55,9 +78,13 @@ export default function Dashboard({ settings, cycle, result }: Props) {
       <div className="dashboard-area pool-area">
         <h2>POOL</h2>
         <div className="metric-grid">
-          <MetricCard label="현재 Pool" value={money(cycle.currentPool)} />
+          <MetricCard label="현재 Pool" value={money(result.adjustedPool)} />
           <MetricCard label="이번 사이클 Pool 사용 가능액" value={money(result.cyclePoolBudget)} />
-          <MetricCard label="사이클 당 적립금" value={money(cycle.contribution)} />
+          <EditableMetricCard
+            label="이번 사이클 적립금"
+            value={cycle.contribution}
+            onChange={(value) => onCycleChange({ ...cycle, contribution: value })}
+          />
           <MetricCard label="사이클 당 인출금" value={money(cycle.withdrawal)} />
         </div>
       </div>

@@ -18,7 +18,6 @@ import {
 } from "./utils/calculations";
 import { fetchLatestTqqqClose, fetchUsdKrwRate } from "./utils/marketData";
 import { loadFromStorage, saveToStorage } from "./utils/storage";
-import { DEFAULT_CYCLE_CONTRIBUTION } from "./utils/constants";
 import type {
   AppTab,
   CycleInput,
@@ -35,8 +34,6 @@ const storeKey = "vr-rebalancing.store";
 const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
-const contributionVersionKey = "vr-rebalancing.contribution-version";
-const contributionVersion = "1";
 const today = new Date().toISOString().slice(0, 10);
 const initialNStage = 3;
 let hasAutoSyncedMarketData = false;
@@ -53,7 +50,7 @@ const defaultSettings: StrategySettings = {
   bandRate: 0.15,
   gValue: 10,
   cycleDays: 14,
-  contribution: DEFAULT_CYCLE_CONTRIBUTION,
+  contribution: 500,
   withdrawal: 0,
   cyclePoolUseLimit: 0.4,
   orderUnit: 2,
@@ -72,7 +69,7 @@ const defaultCycle: CycleInput = {
   endingPrice: 125,
   currentPool: 9000,
   currentStore: 6000,
-  contribution: DEFAULT_CYCLE_CONTRIBUTION,
+  contribution: 500,
   withdrawal: 0,
   storeInjection: 0,
   exchangeRate: 1380,
@@ -136,38 +133,14 @@ function normalizeCycle(cycle: CycleInput): CycleInput {
   };
 }
 
-function needsContributionMigration() {
-  try {
-    return localStorage.getItem(contributionVersionKey) !== contributionVersion;
-  } catch {
-    return true;
-  }
-}
-
-const migrateStoredContribution = needsContributionMigration();
-
-function loadInitialSettings() {
-  const stored = loadFromStorage(settingsKey, defaultSettings);
-  return migrateStoredContribution
-    ? { ...stored, contribution: DEFAULT_CYCLE_CONTRIBUTION }
-    : stored;
-}
-
-function loadInitialCycle() {
-  const stored = loadFromStorage(cycleKey, defaultCycle);
-  return normalizeCycle(
-    migrateStoredContribution
-      ? { ...stored, contribution: DEFAULT_CYCLE_CONTRIBUTION }
-      : stored
-  );
-}
-
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("setup");
-  const [settings, setSettings] = useState(loadInitialSettings);
+  const [settings, setSettings] = useState(() =>
+    loadFromStorage(settingsKey, defaultSettings)
+  );
   const [draftSettings, setDraftSettings] = useState(settings);
   const [isStrategyEditing, setIsStrategyEditing] = useState(false);
-  const [cycle, setCycle] = useState(loadInitialCycle);
+  const [cycle, setCycle] = useState(() => normalizeCycle(loadFromStorage(cycleKey, defaultCycle)));
   const [store, setStore] = useState(() => loadFromStorage(storeKey, defaultStore));
   const [history, setHistory] = useState<HistoryRecord[]>(() =>
     normalizeHistory(loadFromStorage(historyKey, [] as HistoryRecord[]))
@@ -189,9 +162,6 @@ export default function App() {
   useEffect(() => saveToStorage(historyKey, history), [history]);
   useEffect(() => saveToStorage(fillsKey, fillDrafts), [fillDrafts]);
   useEffect(() => saveToStorage(undoKey, undoSnapshot), [undoSnapshot]);
-  useEffect(() => {
-    localStorage.setItem(contributionVersionKey, contributionVersion);
-  }, []);
 
   useEffect(() => {
     if (hasAutoSyncedMarketData) return;
@@ -266,12 +236,12 @@ export default function App() {
   const result = useMemo(() => calculateCycle(settings, cycle), [settings, cycle]);
   const storeSignal = useMemo(() => evaluateStoreSignal(store), [store]);
   const buyOrders = useMemo(
-    () => buildBuyOrders(result.lowerBand, cycle.shares, cycle.currentPool, settings.orderUnit, result.cyclePoolBudget),
-    [cycle.currentPool, cycle.shares, result.cyclePoolBudget, result.lowerBand, settings.orderUnit]
+    () => buildBuyOrders(result.lowerBand, cycle.shares, result.adjustedPool, settings.orderUnit, result.cyclePoolBudget),
+    [cycle.shares, result.adjustedPool, result.cyclePoolBudget, result.lowerBand, settings.orderUnit]
   );
   const sellOrders = useMemo(
-    () => buildSellOrders(result.upperBand, cycle.shares, cycle.currentPool, settings.orderUnit),
-    [cycle.currentPool, cycle.shares, result.upperBand, settings.orderUnit]
+    () => buildSellOrders(result.upperBand, cycle.shares, result.adjustedPool, settings.orderUnit),
+    [cycle.shares, result.adjustedPool, result.upperBand, settings.orderUnit]
   );
   const advancePreview = useMemo(
     () => calculateAdvancePreview(settings, cycle, fillDrafts),
@@ -287,6 +257,11 @@ export default function App() {
 
   function resetFillDrafts() {
     setFillDrafts(createFillEntries(buyOrders, sellOrders));
+  }
+
+  function updateCycle(nextCycle: CycleInput) {
+    setCycle(nextCycle);
+    setFillDrafts([]);
   }
 
   function syncSettingsToCycle(sourceSettings = settings) {
@@ -396,7 +371,6 @@ export default function App() {
       nStage: cycle.nStage + 1,
       shares: advancePreview.sharesAfter,
       currentPool: advancePreview.poolAfter,
-      contribution: DEFAULT_CYCLE_CONTRIBUTION,
       manualEndingEquity: advancePreview.endingEquity,
       useManualEndingEquity: false,
       vStage: "V2_PLUS"
@@ -469,7 +443,7 @@ export default function App() {
         </div>
       </header>
 
-      <Dashboard settings={settings} cycle={cycle} result={result} />
+      <Dashboard settings={settings} cycle={cycle} result={result} onCycleChange={updateCycle} />
 
       <section className="market-toolbar">
         <button type="button" onClick={() => syncSettingsToCycle()}>전략 설정을 현재 사이클에 반영</button>
@@ -504,7 +478,7 @@ export default function App() {
           onApplyToCycle={() => syncSettingsToCycle(settings)}
         />
       )}
-      {activeTab === "cycle" && <CycleCalculator cycle={cycle} result={result} onChange={setCycle} onRefreshClose={refreshTqqqClose} onRefreshExchangeRate={refreshExchangeRate} />}
+      {activeTab === "cycle" && <CycleCalculator cycle={cycle} result={result} onChange={updateCycle} onRefreshClose={refreshTqqqClose} onRefreshExchangeRate={refreshExchangeRate} />}
       {activeTab === "orders" && <OrderTables settings={settings} result={result} buyOrders={buyOrders} sellOrders={sellOrders} />}
       {activeTab === "advance" && <AdvanceCycle fills={fillDrafts} preview={advancePreview} canUndo={Boolean(undoSnapshot)} onChange={setFillDrafts} onConfirm={confirmAdvanceCycle} onUndo={undoAdvanceCycle} />}
       {activeTab === "store" && <StorePanel settings={settings} cycle={cycle} store={store} signal={storeSignal} onStoreChange={setStore} onConfirmInjection={confirmStoreInjection} />}
