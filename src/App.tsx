@@ -34,7 +34,7 @@ const storeKey = "vr-rebalancing.store";
 const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
-const today = new Date().toISOString().slice(0, 10);
+const today = toDateInputValue(new Date());
 const initialNStage = 3;
 let hasAutoSyncedMarketData = false;
 
@@ -98,7 +98,14 @@ function addDays(dateText: string, days: number) {
   const date = new Date(`${dateText}T00:00:00`);
   if (Number.isNaN(date.getTime())) return today;
   date.setDate(date.getDate() + days);
-  return date.toISOString().slice(0, 10);
+  return toDateInputValue(date);
+}
+
+function toDateInputValue(date: Date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
 
 function formatDate(dateText: string) {
