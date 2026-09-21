@@ -34,8 +34,24 @@ const storeKey = "vr-rebalancing.store";
 const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
+const scheduleVersionKey = "vr-rebalancing.schedule-version";
+const scheduleVersion = "monday-stage-6-v1";
+const stageSixStartDate = "2026-09-14";
 const today = toDateInputValue(new Date());
-const initialNStage = 3;
+const initialNStage = 6;
+const koreanMondayPublicHolidays = new Set([
+  "2026-03-02", "2026-05-25", "2026-08-17", "2026-10-05",
+  "2027-03-01", "2027-07-19", "2027-08-16", "2027-10-04", "2027-10-11", "2027-12-27",
+  "2028-07-17", "2028-10-02", "2028-10-09", "2028-12-25",
+  "2029-01-01", "2029-05-07", "2029-05-21", "2029-09-24",
+  "2030-05-06",
+  "2031-03-03", "2031-05-05",
+  "2032-03-01", "2032-05-17", "2032-07-19", "2032-08-16", "2032-10-04", "2032-10-11", "2032-12-27",
+  "2033-01-31", "2033-06-06", "2033-07-18", "2033-08-15", "2033-10-03", "2033-10-10", "2033-12-26",
+  "2034-07-17", "2034-10-09", "2034-12-25",
+  "2035-01-01", "2035-05-07",
+  "2036-01-28", "2036-03-03", "2036-05-05", "2036-10-06"
+]);
 let hasAutoSyncedMarketData = false;
 
 const defaultSettings: StrategySettings = {
@@ -44,7 +60,7 @@ const defaultSettings: StrategySettings = {
   initialAveragePrice: 125,
   startClosePrice: 125,
   totalOrderQuantity: 120,
-  cycleStartDate: today,
+  cycleStartDate: stageSixStartDate,
   initialPool: 9000,
   initialStore: 6000,
   bandRate: 0.15,
@@ -114,16 +130,52 @@ function formatDate(dateText: string) {
   return date.toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" });
 }
 
+function isKoreanPublicHoliday(dateText: string) {
+  return koreanMondayPublicHolidays.has(dateText);
+}
+
+function cycleEndDate(startDate: string) {
+  const start = new Date(`${startDate}T00:00:00`);
+  if (Number.isNaN(start.getTime())) return startDate;
+  const daysToFirstSunday = (7 - start.getDay()) % 7;
+  return addDays(startDate, daysToFirstSunday + 7);
+}
+
+function nextCycleStartDate(startDate: string) {
+  const monday = addDays(cycleEndDate(startDate), 1);
+  return isKoreanPublicHoliday(monday) ? addDays(monday, 1) : monday;
+}
+
+function normalizeCycleStartDate(dateText: string) {
+  const selected = new Date(`${dateText}T00:00:00`);
+  if (Number.isNaN(selected.getTime())) return today;
+
+  const day = selected.getDay();
+  if (day === 1) return isKoreanPublicHoliday(dateText) ? addDays(dateText, 1) : dateText;
+  if (day === 2 && isKoreanPublicHoliday(addDays(dateText, -1))) return dateText;
+
+  const daysUntilMonday = (8 - day) % 7;
+  const monday = addDays(dateText, daysUntilMonday);
+  return isKoreanPublicHoliday(monday) ? addDays(monday, 1) : monday;
+}
+
+function inclusiveDays(startDate: string, endDate: string) {
+  const start = new Date(`${startDate}T00:00:00`);
+  const end = new Date(`${endDate}T00:00:00`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return 0;
+  return Math.round((end.getTime() - start.getTime()) / 86_400_000) + 1;
+}
+
 function cyclePeriod(settings: StrategySettings) {
   const start = settings.cycleStartDate || today;
-  const end = addDays(start, Math.max(settings.cycleDays, 1) - 1);
-  return `${formatDate(start)} - ${formatDate(end)} · ${settings.cycleDays}일`;
+  const end = cycleEndDate(start);
+  return `${formatDate(start)} - ${formatDate(end)} · ${inclusiveDays(start, end)}일`;
 }
 
 function normalizeHistory(records: HistoryRecord[]): HistoryRecord[] {
   return records.map((record) => ({
     ...record,
-    nStage: Math.max(record.nStage ?? record.cycleNumber ?? initialNStage, initialNStage),
+    nStage: Math.max(record.nStage ?? record.cycleNumber ?? 1, 1),
     vStage: record.vStage ?? "V2_PLUS",
     fills: record.fills ?? [],
     poolBefore: record.poolBefore ?? record.pool,
@@ -136,18 +188,36 @@ function normalizeHistory(records: HistoryRecord[]): HistoryRecord[] {
 function normalizeCycle(cycle: CycleInput): CycleInput {
   return {
     ...cycle,
-    nStage: Math.max(cycle.nStage ?? initialNStage, initialNStage)
+    nStage: Math.max(cycle.nStage ?? initialNStage, 1)
   };
+}
+
+function needsScheduleMigration() {
+  try {
+    return localStorage.getItem(scheduleVersionKey) !== scheduleVersion;
+  } catch {
+    return true;
+  }
+}
+
+const migrateSchedule = needsScheduleMigration();
+
+function loadInitialSettings() {
+  const stored = loadFromStorage(settingsKey, defaultSettings);
+  return migrateSchedule ? { ...stored, cycleStartDate: stageSixStartDate } : stored;
+}
+
+function loadInitialCycle() {
+  const stored = loadFromStorage(cycleKey, defaultCycle);
+  return normalizeCycle(migrateSchedule ? { ...stored, nStage: initialNStage } : stored);
 }
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("setup");
-  const [settings, setSettings] = useState(() =>
-    loadFromStorage(settingsKey, defaultSettings)
-  );
+  const [settings, setSettings] = useState(loadInitialSettings);
   const [draftSettings, setDraftSettings] = useState(settings);
   const [isStrategyEditing, setIsStrategyEditing] = useState(false);
-  const [cycle, setCycle] = useState(() => normalizeCycle(loadFromStorage(cycleKey, defaultCycle)));
+  const [cycle, setCycle] = useState(loadInitialCycle);
   const [store, setStore] = useState(() => loadFromStorage(storeKey, defaultStore));
   const [history, setHistory] = useState<HistoryRecord[]>(() =>
     normalizeHistory(loadFromStorage(historyKey, [] as HistoryRecord[]))
@@ -169,6 +239,9 @@ export default function App() {
   useEffect(() => saveToStorage(historyKey, history), [history]);
   useEffect(() => saveToStorage(fillsKey, fillDrafts), [fillDrafts]);
   useEffect(() => saveToStorage(undoKey, undoSnapshot), [undoSnapshot]);
+  useEffect(() => {
+    localStorage.setItem(scheduleVersionKey, scheduleVersion);
+  }, []);
 
   useEffect(() => {
     if (hasAutoSyncedMarketData) return;
@@ -283,9 +356,14 @@ export default function App() {
   }
 
   function saveStrategySettings() {
-    setSettings(draftSettings);
+    const normalizedSettings = {
+      ...draftSettings,
+      cycleStartDate: normalizeCycleStartDate(draftSettings.cycleStartDate)
+    };
+    setSettings(normalizedSettings);
+    setDraftSettings(normalizedSettings);
     setIsStrategyEditing(false);
-    syncSettingsToCycle(draftSettings);
+    syncSettingsToCycle(normalizedSettings);
   }
 
   function cancelStrategyEdit() {
@@ -371,7 +449,7 @@ export default function App() {
       fillDrafts
     };
     const record = makeRecord(history.length);
-    const nextStartDate = addDays(settings.cycleStartDate || today, settings.cycleDays);
+    const nextStartDate = nextCycleStartDate(settings.cycleStartDate || today);
     const nextCycle: CycleInput = {
       ...cycle,
       previousV: advancePreview.nextV,
