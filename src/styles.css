@@ -204,27 +204,30 @@ h3 {
   font-size: 1.18rem;
 }
 
-.editable-metric-card label {
-  display: block;
-}
-
-.metric-input-wrap {
+.contribution-editor {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 4px;
+  grid-template-columns: minmax(220px, 1fr) minmax(220px, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+  padding: 16px;
+  border: 1px solid #d7e0e8;
+  border-radius: 8px;
+  background: #f7fafc;
 }
 
-.metric-input-wrap input {
-  width: 100%;
-  min-width: 0;
-  border: 1px solid #cbd5df;
-  border-radius: 6px;
-  background: #fff;
-  color: #18212b;
-  padding: 8px 10px;
-  font: inherit;
-  font-weight: 700;
+.contribution-recommendation {
+  display: grid;
+  gap: 4px;
+  align-content: center;
+}
+
+.contribution-recommendation span,
+.contribution-recommendation small {
+  color: #627283;
+}
+
+.contribution-recommendation strong {
+  font-size: 1.18rem;
 }
 
 .metric-card.signal {
@@ -530,7 +533,8 @@ th {
   .metric-grid,
   .form-grid,
   .store-summary,
-  .summary-grid {
+  .summary-grid,
+  .contribution-editor {
     grid-template-columns: 1fr;
   }
 

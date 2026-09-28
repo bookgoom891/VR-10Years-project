@@ -1,11 +1,15 @@
 import type { AdvancePreview, FillEntry } from "../types";
-import { money, NumericInput, price, shares } from "./fields";
+import { money, NumberField, NumericInput, price, roundToTwo, shares } from "./fields";
+import { CONTRIBUTION_TARGET_KRW } from "../utils/constants";
 
 interface Props {
   fills: FillEntry[];
   preview: AdvancePreview;
+  contribution: number;
+  exchangeRate: number;
   canUndo: boolean;
   onChange: (fills: FillEntry[]) => void;
+  onContributionChange: (value: number) => void;
   onConfirm: () => void;
   onUndo: () => void;
 }
@@ -25,12 +29,18 @@ function makeManualFill(side: "buy" | "sell"): FillEntry {
 export default function AdvanceCycle({
   fills,
   preview,
+  contribution,
+  exchangeRate,
   canUndo,
   onChange,
+  onContributionChange,
   onConfirm,
   onUndo
 }: Props) {
   const selectedCount = preview.selectedFills.length;
+  const recommendedContribution = exchangeRate > 0
+    ? roundToTwo(CONTRIBUTION_TARGET_KRW / exchangeRate)
+    : 0;
 
   function updateFill(id: string, patch: Partial<FillEntry>) {
     onChange(fills.map((fill) => (fill.id === id ? { ...fill, ...patch } : fill)));
@@ -100,6 +110,23 @@ export default function AdvanceCycle({
         </div>
       </div>
 
+      <div className="contribution-editor">
+        <NumberField
+          label="이번 사이클 적립금"
+          value={contribution}
+          min={0}
+          onChange={onContributionChange}
+          suffix="USD"
+        />
+        <div className="contribution-recommendation">
+          <span>현재 환율 기준 추천 적립금</span>
+          <strong>{money(recommendedContribution)}</strong>
+          <small>
+            ₩{CONTRIBUTION_TARGET_KRW.toLocaleString("ko-KR")} ÷ {exchangeRate.toLocaleString("ko-KR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}원
+          </small>
+        </div>
+      </div>
+
       <div className="split-grid">
         <article className="table-card">
           <div className="section-title with-actions small">
@@ -156,7 +183,7 @@ export default function AdvanceCycle({
         <span>체결 후 수량 <strong>{shares(preview.sharesAfter)}주</strong></span>
         <span>체결 전 Pool <strong>{money(preview.poolBefore)}</strong></span>
         <span>체결 반영 후 Pool <strong>{money(preview.poolAfterFills)}</strong></span>
-        <span>사이클 당 적립금 <strong>{money(preview.contribution)}</strong></span>
+        <span>이번 사이클 적립금 <strong>{money(preview.contribution)}</strong></span>
         <span>사이클 당 인출금 <strong>{money(preview.withdrawal)}</strong></span>
         <span>최종 다음 Pool <strong>{money(preview.poolAfter)}</strong></span>
         <span>이번 사이클 E <strong>{money(preview.endingEquity)}</strong></span>
@@ -167,7 +194,7 @@ export default function AdvanceCycle({
 
       <div className="formula-box">
         <strong>확정 기준</strong>
-        <p>체결을 먼저 반영한 뒤, 사이클 당 적립금은 Pool에 추가하고 사이클 당 인출금은 Pool에서 차감합니다.</p>
+        <p>체결을 먼저 반영한 뒤, 이번 사이클 적립금은 Pool에 추가하고 사이클 당 인출금은 Pool에서 차감합니다.</p>
       </div>
     </section>
   );

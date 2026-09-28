@@ -18,6 +18,7 @@ import {
 } from "./utils/calculations";
 import { fetchLatestTqqqClose, fetchUsdKrwRate } from "./utils/marketData";
 import { loadFromStorage, saveToStorage } from "./utils/storage";
+import { DEFAULT_CYCLE_CONTRIBUTION } from "./utils/constants";
 import type {
   AppTab,
   CycleInput,
@@ -36,6 +37,8 @@ const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
 const scheduleVersionKey = "vr-rebalancing.schedule-version";
 const scheduleVersion = "monday-stage-6-v1";
+const contributionVersionKey = "vr-rebalancing.advance-contribution-version";
+const contributionVersion = "advance-input-v1";
 const stageSixStartDate = "2026-09-14";
 const today = toDateInputValue(new Date());
 const initialNStage = 6;
@@ -66,7 +69,7 @@ const defaultSettings: StrategySettings = {
   bandRate: 0.15,
   gValue: 10,
   cycleDays: 14,
-  contribution: 500,
+  contribution: DEFAULT_CYCLE_CONTRIBUTION,
   withdrawal: 0,
   cyclePoolUseLimit: 0.4,
   orderUnit: 2,
@@ -85,7 +88,7 @@ const defaultCycle: CycleInput = {
   endingPrice: 125,
   currentPool: 9000,
   currentStore: 6000,
-  contribution: 500,
+  contribution: DEFAULT_CYCLE_CONTRIBUTION,
   withdrawal: 0,
   storeInjection: 0,
   exchangeRate: 1380,
@@ -202,14 +205,32 @@ function needsScheduleMigration() {
 
 const migrateSchedule = needsScheduleMigration();
 
+function needsContributionMigration() {
+  try {
+    return localStorage.getItem(contributionVersionKey) !== contributionVersion;
+  } catch {
+    return true;
+  }
+}
+
+const migrateContribution = needsContributionMigration();
+
 function loadInitialSettings() {
   const stored = loadFromStorage(settingsKey, defaultSettings);
-  return migrateSchedule ? { ...stored, cycleStartDate: stageSixStartDate } : stored;
+  return {
+    ...stored,
+    ...(migrateSchedule ? { cycleStartDate: stageSixStartDate } : {}),
+    ...(migrateContribution ? { contribution: DEFAULT_CYCLE_CONTRIBUTION } : {})
+  };
 }
 
 function loadInitialCycle() {
   const stored = loadFromStorage(cycleKey, defaultCycle);
-  return normalizeCycle(migrateSchedule ? { ...stored, nStage: initialNStage } : stored);
+  return normalizeCycle({
+    ...stored,
+    ...(migrateSchedule ? { nStage: initialNStage } : {}),
+    ...(migrateContribution ? { contribution: DEFAULT_CYCLE_CONTRIBUTION } : {})
+  });
 }
 
 export default function App() {
@@ -241,6 +262,9 @@ export default function App() {
   useEffect(() => saveToStorage(undoKey, undoSnapshot), [undoSnapshot]);
   useEffect(() => {
     localStorage.setItem(scheduleVersionKey, scheduleVersion);
+  }, []);
+  useEffect(() => {
+    localStorage.setItem(contributionVersionKey, contributionVersion);
   }, []);
 
   useEffect(() => {
@@ -456,6 +480,7 @@ export default function App() {
       nStage: cycle.nStage + 1,
       shares: advancePreview.sharesAfter,
       currentPool: advancePreview.poolAfter,
+      contribution: DEFAULT_CYCLE_CONTRIBUTION,
       manualEndingEquity: advancePreview.endingEquity,
       useManualEndingEquity: false,
       vStage: "V2_PLUS"
@@ -528,7 +553,7 @@ export default function App() {
         </div>
       </header>
 
-      <Dashboard settings={settings} cycle={cycle} result={result} onCycleChange={updateCycle} />
+      <Dashboard settings={settings} cycle={cycle} result={result} />
 
       <section className="market-toolbar">
         <button type="button" onClick={() => syncSettingsToCycle()}>전략 설정을 현재 사이클에 반영</button>
@@ -565,7 +590,19 @@ export default function App() {
       )}
       {activeTab === "cycle" && <CycleCalculator cycle={cycle} result={result} onChange={updateCycle} onRefreshClose={refreshTqqqClose} onRefreshExchangeRate={refreshExchangeRate} />}
       {activeTab === "orders" && <OrderTables settings={settings} result={result} buyOrders={buyOrders} sellOrders={sellOrders} />}
-      {activeTab === "advance" && <AdvanceCycle fills={fillDrafts} preview={advancePreview} canUndo={Boolean(undoSnapshot)} onChange={setFillDrafts} onConfirm={confirmAdvanceCycle} onUndo={undoAdvanceCycle} />}
+      {activeTab === "advance" && (
+        <AdvanceCycle
+          fills={fillDrafts}
+          preview={advancePreview}
+          contribution={cycle.contribution}
+          exchangeRate={cycle.exchangeRate}
+          canUndo={Boolean(undoSnapshot)}
+          onChange={setFillDrafts}
+          onContributionChange={(contribution) => setCycle((current) => ({ ...current, contribution }))}
+          onConfirm={confirmAdvanceCycle}
+          onUndo={undoAdvanceCycle}
+        />
+      )}
       {activeTab === "store" && <StorePanel settings={settings} cycle={cycle} store={store} signal={storeSignal} onStoreChange={setStore} onConfirmInjection={confirmStoreInjection} />}
       {activeTab === "history" && <HistoryTable history={history} memo={memo} onMemoChange={setMemo} onSave={saveCycle} onDelete={(id) => setHistory((records) => records.filter((record) => record.id !== id))} onClear={() => setHistory([])} />}
     </div>
