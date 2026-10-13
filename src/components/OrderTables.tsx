@@ -69,7 +69,6 @@ export default function OrderTables({ settings, result, buyOrders, sellOrders }:
     <section className="panel">
       <div className="section-title">
         <h2>주문표</h2>
-        <p>매수표와 매도표는 사용 가능 금액과 보유 수량을 최대 10차로 나누어 생성됩니다.</p>
       </div>
       <div className="split-grid">
         <OrderTable title="매수 예약표" rows={buyOrders} type="buy" />

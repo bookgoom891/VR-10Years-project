@@ -349,8 +349,8 @@ export default function App() {
     [cycle.shares, result.adjustedPool, result.cyclePoolBudget, result.lowerBand, settings.orderUnit]
   );
   const sellOrders = useMemo(
-    () => buildSellOrders(result.upperBand, cycle.shares, result.adjustedPool, settings.orderUnit),
-    [cycle.shares, result.adjustedPool, result.upperBand, settings.orderUnit]
+    () => buildSellOrders(result.upperBand, cycle.shares, result.adjustedPool, cycle.endingPrice),
+    [cycle.shares, result.adjustedPool, result.upperBand, cycle.endingPrice]
   );
   const advancePreview = useMemo(
     () => calculateAdvancePreview(settings, cycle, fillDrafts, nextContribution),
