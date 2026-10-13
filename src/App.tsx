@@ -35,6 +35,7 @@ const storeKey = "vr-rebalancing.store";
 const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
+const nextContributionKey = "vr-rebalancing.next-contribution";
 const scheduleVersionKey = "vr-rebalancing.schedule-version";
 const scheduleVersion = "monday-stage-6-v1";
 const contributionVersionKey = "vr-rebalancing.advance-contribution-version";
@@ -239,6 +240,9 @@ export default function App() {
   const [draftSettings, setDraftSettings] = useState(settings);
   const [isStrategyEditing, setIsStrategyEditing] = useState(false);
   const [cycle, setCycle] = useState(loadInitialCycle);
+  const [nextContribution, setNextContribution] = useState(() =>
+    loadFromStorage(nextContributionKey, { value: DEFAULT_CYCLE_CONTRIBUTION }).value
+  );
   const [store, setStore] = useState(() => loadFromStorage(storeKey, defaultStore));
   const [history, setHistory] = useState<HistoryRecord[]>(() =>
     normalizeHistory(loadFromStorage(historyKey, [] as HistoryRecord[]))
@@ -256,6 +260,7 @@ export default function App() {
 
   useEffect(() => saveToStorage(settingsKey, settings), [settings]);
   useEffect(() => saveToStorage(cycleKey, cycle), [cycle]);
+  useEffect(() => saveToStorage(nextContributionKey, { value: nextContribution }), [nextContribution]);
   useEffect(() => saveToStorage(storeKey, store), [store]);
   useEffect(() => saveToStorage(historyKey, history), [history]);
   useEffect(() => saveToStorage(fillsKey, fillDrafts), [fillDrafts]);
@@ -348,8 +353,8 @@ export default function App() {
     [cycle.shares, result.adjustedPool, result.upperBand, settings.orderUnit]
   );
   const advancePreview = useMemo(
-    () => calculateAdvancePreview(settings, cycle, fillDrafts),
-    [settings, cycle, fillDrafts]
+    () => calculateAdvancePreview(settings, cycle, fillDrafts, nextContribution),
+    [settings, cycle, fillDrafts, nextContribution]
   );
   const errors = useMemo(() => validateInputs(settings, cycle), [settings, cycle]);
 
@@ -448,6 +453,7 @@ export default function App() {
       poolAfter: advancePreview.poolAfter,
       store: cycle.currentStore,
       contribution: cycle.contribution,
+      nextContribution,
       storeInjection: cycle.storeInjection,
       exchangeRate: cycle.exchangeRate,
       totalUsdAssets: advancePreview.endingEquity + advancePreview.poolAfter + cycle.currentStore,
@@ -470,7 +476,8 @@ export default function App() {
       history,
       memo,
       activeTab,
-      fillDrafts
+      fillDrafts,
+      nextContribution
     };
     const record = makeRecord(history.length);
     const nextStartDate = nextCycleStartDate(settings.cycleStartDate || today);
@@ -479,8 +486,8 @@ export default function App() {
       previousV: advancePreview.nextV,
       nStage: cycle.nStage + 1,
       shares: advancePreview.sharesAfter,
-      currentPool: advancePreview.poolAfter,
-      contribution: DEFAULT_CYCLE_CONTRIBUTION,
+      currentPool: advancePreview.poolAfterFills,
+      contribution: nextContribution,
       manualEndingEquity: advancePreview.endingEquity,
       useManualEndingEquity: false,
       vStage: "V2_PLUS"
@@ -491,6 +498,7 @@ export default function App() {
     setDraftSettings((current) => ({ ...current, cycleStartDate: nextStartDate }));
     setHistory((current) => [record, ...current]);
     setCycle(nextCycle);
+    setNextContribution(DEFAULT_CYCLE_CONTRIBUTION);
     setFillDrafts([]);
     setMemo("");
     setActiveTab("cycle");
@@ -502,6 +510,7 @@ export default function App() {
     setSettings(undoSnapshot.settings);
     setDraftSettings(undoSnapshot.settings);
     setCycle(normalizeCycle(undoSnapshot.cycle));
+    setNextContribution(undoSnapshot.nextContribution ?? DEFAULT_CYCLE_CONTRIBUTION);
     setStore(undoSnapshot.store);
     setHistory(undoSnapshot.history);
     setMemo(undoSnapshot.memo);
@@ -553,7 +562,7 @@ export default function App() {
         </div>
       </header>
 
-      <Dashboard settings={settings} cycle={cycle} result={result} />
+      <Dashboard settings={settings} cycle={cycle} result={result} onContributionChange={(contribution) => updateCycle({ ...cycle, contribution })} />
 
       <section className="market-toolbar">
         <button type="button" onClick={() => syncSettingsToCycle()}>전략 설정을 현재 사이클에 반영</button>
@@ -594,11 +603,11 @@ export default function App() {
         <AdvanceCycle
           fills={fillDrafts}
           preview={advancePreview}
-          contribution={cycle.contribution}
+          contribution={nextContribution}
           exchangeRate={cycle.exchangeRate}
           canUndo={Boolean(undoSnapshot)}
           onChange={setFillDrafts}
-          onContributionChange={(contribution) => setCycle((current) => ({ ...current, contribution }))}
+          onContributionChange={setNextContribution}
           onConfirm={confirmAdvanceCycle}
           onUndo={undoAdvanceCycle}
         />

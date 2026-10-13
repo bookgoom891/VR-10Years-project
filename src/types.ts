@@ -108,6 +108,7 @@ export interface StoreSignalResult {
 }
 
 export interface HistoryRecord {
+  nextContribution?: number;
   id: string;
   cycleNumber: number;
   date: string;
@@ -135,6 +136,7 @@ export interface HistoryRecord {
 }
 
 export interface UndoSnapshot {
+  nextContribution?: number;
   settings: StrategySettings;
   cycle: CycleInput;
   store: StoreSignalInput;

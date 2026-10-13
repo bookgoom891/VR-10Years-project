@@ -112,7 +112,7 @@ export default function AdvanceCycle({
 
       <div className="contribution-editor">
         <NumberField
-          label="이번 사이클 적립금"
+          label="다음 사이클 적립금"
           value={contribution}
           min={0}
           onChange={onContributionChange}
@@ -183,7 +183,7 @@ export default function AdvanceCycle({
         <span>체결 후 수량 <strong>{shares(preview.sharesAfter)}주</strong></span>
         <span>체결 전 Pool <strong>{money(preview.poolBefore)}</strong></span>
         <span>체결 반영 후 Pool <strong>{money(preview.poolAfterFills)}</strong></span>
-        <span>이번 사이클 적립금 <strong>{money(preview.contribution)}</strong></span>
+        <span>다음 사이클 적립금 <strong>{money(preview.contribution)}</strong></span>
         <span>사이클 당 인출금 <strong>{money(preview.withdrawal)}</strong></span>
         <span>최종 다음 Pool <strong>{money(preview.poolAfter)}</strong></span>
         <span>이번 사이클 E <strong>{money(preview.endingEquity)}</strong></span>
@@ -194,7 +194,7 @@ export default function AdvanceCycle({
 
       <div className="formula-box">
         <strong>확정 기준</strong>
-        <p>체결을 먼저 반영한 뒤, 이번 사이클 적립금은 Pool에 추가하고 사이클 당 인출금은 Pool에서 차감합니다.</p>
+        <p>체결을 먼저 반영한 뒤, 다음 사이클 적립금은 Pool에 추가하고 사이클 당 인출금은 Pool에서 차감합니다.</p>
       </div>
     </section>
   );

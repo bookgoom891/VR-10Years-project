@@ -193,11 +193,13 @@ export function createFillEntries(buyOrders: OrderRow[], sellOrders: OrderRow[])
 export function calculateAdvancePreview(
   settings: StrategySettings,
   cycle: CycleInput,
-  fills: FillEntry[]
+  fills: FillEntry[],
+  nextContribution = DEFAULT_CYCLE_CONTRIBUTION
 ): AdvancePreview {
   const selectedFills = fills.filter((fill) => fill.selected && fill.actualQuantity > 0 && fill.actualPrice > 0);
   let sharesAfter = cycle.shares;
-  let poolAfterFills = cycle.currentPool;
+  const poolBefore = calculateCycle(settings, cycle).adjustedPool;
+  let poolAfterFills = poolBefore;
 
   for (const fill of selectedFills) {
     const value = fill.actualPrice * fill.actualQuantity;
@@ -210,11 +212,12 @@ export function calculateAdvancePreview(
     }
   }
 
-  const poolAfter = poolAfterFills + cycle.contribution - cycle.withdrawal;
+  const poolAfter = poolAfterFills + nextContribution - cycle.withdrawal;
   const previewCycle: CycleInput = {
     ...cycle,
     shares: sharesAfter,
     currentPool: poolAfter,
+    contribution: nextContribution,
     useManualEndingEquity: false
   };
   const result = calculateCycle(settings, previewCycle);
@@ -223,9 +226,9 @@ export function calculateAdvancePreview(
     selectedFills,
     sharesBefore: cycle.shares,
     sharesAfter,
-    poolBefore: cycle.currentPool,
+    poolBefore,
     poolAfterFills,
-    contribution: cycle.contribution,
+    contribution: nextContribution,
     withdrawal: cycle.withdrawal,
     poolAfter,
     endingEquity: result.endingEquity,

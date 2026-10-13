@@ -1,11 +1,12 @@
 import { useState } from "react";
 import type { CycleInput, CycleResult, StrategySettings } from "../types";
-import { krw, money, percent, price, shares } from "./fields";
+import { krw, money, NumberField, percent, price, shares } from "./fields";
 
 interface Props {
   settings: StrategySettings;
   cycle: CycleInput;
   result: CycleResult;
+  onContributionChange: (value: number) => void;
 }
 
 function MetricCard({ label, value }: { label: string; value: string }) {
@@ -17,7 +18,7 @@ function MetricCard({ label, value }: { label: string; value: string }) {
   );
 }
 
-export default function Dashboard({ settings, cycle, result }: Props) {
+export default function Dashboard({ settings, cycle, result, onContributionChange }: Props) {
   const [includeStoreInAssets, setIncludeStoreInAssets] = useState(true);
   const tqqqEquity = cycle.endingPrice * cycle.shares;
   const totalUsdWithStore = tqqqEquity + result.adjustedPool + cycle.currentStore;
@@ -57,7 +58,9 @@ export default function Dashboard({ settings, cycle, result }: Props) {
         <div className="metric-grid">
           <MetricCard label="현재 Pool" value={money(result.adjustedPool)} />
           <MetricCard label="이번 사이클 Pool 사용 가능액" value={money(result.cyclePoolBudget)} />
-          <MetricCard label="이번 사이클 적립금" value={money(cycle.contribution)} />
+          <article className="metric-card">
+            <NumberField label="이번 사이클 적립금" value={cycle.contribution} onChange={onContributionChange} suffix="USD" />
+          </article>
           <MetricCard label="사이클 당 인출금" value={money(cycle.withdrawal)} />
         </div>
       </div>
