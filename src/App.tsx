@@ -35,6 +35,7 @@ const storeKey = "vr-rebalancing.store";
 const historyKey = "vr-rebalancing.history";
 const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
+const restartBackupKey = "vr-rebalancing.restart-backup";
 const nextContributionKey = "vr-rebalancing.next-contribution";
 const scheduleVersionKey = "vr-rebalancing.schedule-version";
 const scheduleVersion = "monday-stage-6-v1";
@@ -254,6 +255,9 @@ export default function App() {
     loadFromStorage<UndoSnapshot | null>(undoKey, null)
   );
   const [memo, setMemo] = useState("");
+  const [restartBackup, setRestartBackup] = useState<UndoSnapshot | null>(() =>
+    loadFromStorage<UndoSnapshot | null>(restartBackupKey, null)
+  );
   const [marketStatus, setMarketStatus] = useState(
     "외부 데이터는 사용자가 버튼을 눌렀을 때만 가져옵니다."
   );
@@ -542,6 +546,74 @@ export default function App() {
     }));
   }
 
+  function restartOperation() {
+    if (!window.confirm("기존 운용 데이터를 백업하고 오늘부터 1단계로 새로 시작할까요?")) return;
+    const backup: UndoSnapshot = {
+      settings, cycle, store, history, memo, activeTab, fillDrafts, nextContribution
+    };
+    try {
+      saveToStorage(`${restartBackupKey}.${Date.now()}`, backup);
+      saveToStorage(restartBackupKey, backup);
+    } catch {
+      setMarketStatus("백업을 저장하지 못해 초기화를 중단했습니다.");
+      return;
+    }
+    setRestartBackup(backup);
+    const freshSettings: StrategySettings = {
+      ...defaultSettings,
+      symbol: settings.symbol,
+      cycleStartDate: toDateInputValue(new Date()),
+      initialCapital: 0,
+      initialAveragePrice: 0,
+      totalOrderQuantity: 0,
+      initialPool: 0,
+      initialStore: 0,
+      startClosePrice: cycle.endingPrice,
+      exchangeRate: cycle.exchangeRate
+    };
+    const freshCycle: CycleInput = {
+      ...defaultCycle,
+      nStage: 1,
+      previousV: 0,
+      shares: 0,
+      endingPrice: cycle.endingPrice,
+      currentPool: 0,
+      currentStore: 0,
+      contribution: 0,
+      manualEndingEquity: 0,
+      exchangeRate: cycle.exchangeRate
+    };
+    setSettings(freshSettings);
+    setDraftSettings(freshSettings);
+    setCycle(freshCycle);
+    setStore({ ...defaultStore, price: cycle.endingPrice, prevPrice: cycle.endingPrice });
+    setHistory([]);
+    setFillDrafts([]);
+    setUndoSnapshot(null);
+    setNextContribution(DEFAULT_CYCLE_CONTRIBUTION);
+    setMemo("");
+    setActiveTab("setup");
+    setIsStrategyEditing(true);
+    setMarketStatus("기존 운용을 백업했습니다. 오늘부터 1단계로 시작합니다. 새 전략값을 입력해 저장하세요.");
+  }
+
+  function restoreOperation() {
+    if (!restartBackup) return;
+    if (!window.confirm("초기화 전 백업으로 운용 데이터를 복원할까요?")) return;
+    setSettings(restartBackup.settings);
+    setDraftSettings(restartBackup.settings);
+    setCycle(restartBackup.cycle);
+    setStore(restartBackup.store);
+    setHistory(restartBackup.history);
+    setFillDrafts(restartBackup.fillDrafts);
+    setUndoSnapshot(null);
+    setNextContribution(restartBackup.nextContribution ?? DEFAULT_CYCLE_CONTRIBUTION);
+    setMemo(restartBackup.memo);
+    setActiveTab("setup");
+    setIsStrategyEditing(false);
+    setMarketStatus("초기화 전 운용 백업을 복원했습니다.");
+  }
+
   return (
     <div className="app">
       <header className="app-header">
@@ -569,6 +641,8 @@ export default function App() {
         <button type="button" onClick={refreshExchangeRate}>USD/KRW 환율 가져오기</button>
         <button type="button" onClick={refreshTqqqClose}>{settings.symbol} 최근 종가 가져오기</button>
         <button type="button" onClick={resetFillDrafts}>이전 주문표 다시 불러오기</button>
+        <button type="button" onClick={restartOperation}>새 운용 시작</button>
+        {restartBackup && <button type="button" onClick={restoreOperation}>초기화 전 백업 복원</button>}
         <span>{marketStatus}</span>
       </section>
 

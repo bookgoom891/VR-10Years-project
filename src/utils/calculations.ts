@@ -73,12 +73,12 @@ export function applySettingsToCycle(
   settings: StrategySettings,
   cycle: CycleInput
 ): CycleInput {
-  const shares = Math.max(0.01, roundToTwo(settings.totalOrderQuantity));
+  const shares = Math.max(0, roundToTwo(settings.totalOrderQuantity));
   const v1 = calculateV1(settings);
 
   return {
     ...cycle,
-    nStage: Math.max(cycle.nStage ?? 3, 3),
+    nStage: Math.max(cycle.nStage ?? 1, 1),
     previousV: v1,
     shares,
     endingPrice: settings.startClosePrice,
