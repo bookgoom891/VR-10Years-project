@@ -37,6 +37,7 @@ const undoKey = "vr-rebalancing.undo";
 const fillsKey = "vr-rebalancing.fills";
 const restartBackupKey = "vr-rebalancing.restart-backup";
 const nextContributionKey = "vr-rebalancing.next-contribution";
+const sellOrderQuantityKey = "vr-rebalancing.sell-order-quantity";
 const scheduleVersionKey = "vr-rebalancing.schedule-version";
 const scheduleVersion = "monday-stage-6-v1";
 const contributionVersionKey = "vr-rebalancing.advance-contribution-version";
@@ -241,6 +242,9 @@ export default function App() {
   const [draftSettings, setDraftSettings] = useState(settings);
   const [isStrategyEditing, setIsStrategyEditing] = useState(false);
   const [cycle, setCycle] = useState(loadInitialCycle);
+  const [sellOrderQuantity, setSellOrderQuantity] = useState(() =>
+    loadFromStorage(sellOrderQuantityKey, { value: 1 }).value
+  );
   const [nextContribution, setNextContribution] = useState(() =>
     loadFromStorage(nextContributionKey, { value: DEFAULT_CYCLE_CONTRIBUTION }).value
   );
@@ -264,6 +268,7 @@ export default function App() {
 
   useEffect(() => saveToStorage(settingsKey, settings), [settings]);
   useEffect(() => saveToStorage(cycleKey, cycle), [cycle]);
+  useEffect(() => saveToStorage(sellOrderQuantityKey, { value: sellOrderQuantity }), [sellOrderQuantity]);
   useEffect(() => saveToStorage(nextContributionKey, { value: nextContribution }), [nextContribution]);
   useEffect(() => saveToStorage(storeKey, store), [store]);
   useEffect(() => saveToStorage(historyKey, history), [history]);
@@ -353,8 +358,8 @@ export default function App() {
     [cycle.shares, result.adjustedPool, result.cyclePoolBudget, result.lowerBand, settings.orderUnit]
   );
   const sellOrders = useMemo(
-    () => buildSellOrders(result.upperBand, cycle.shares, result.adjustedPool, cycle.endingPrice),
-    [cycle.shares, result.adjustedPool, result.upperBand, cycle.endingPrice]
+    () => buildSellOrders(result.upperBand, cycle.shares, result.adjustedPool, cycle.endingPrice, sellOrderQuantity),
+    [cycle.shares, result.adjustedPool, result.upperBand, cycle.endingPrice, sellOrderQuantity]
   );
   const advancePreview = useMemo(
     () => calculateAdvancePreview(settings, cycle, fillDrafts, nextContribution),
@@ -370,6 +375,16 @@ export default function App() {
 
   function resetFillDrafts() {
     setFillDrafts(createFillEntries(buyOrders, sellOrders));
+  }
+
+  function changeSellOrderQuantity(value: number) {
+    setSellOrderQuantity(value);
+    const updatedOrders = buildSellOrders(result.upperBand, cycle.shares, result.adjustedPool, cycle.endingPrice, value);
+    setFillDrafts((current) => {
+      const retained = current.filter((fill) => fill.side !== "sell" || fill.source === "manual" || fill.selected);
+      const retainedIds = new Set(retained.map((fill) => fill.id));
+      return [...retained, ...createFillEntries([], updatedOrders).filter((fill) => !retainedIds.has(fill.id))];
+    });
   }
 
   function updateCycle(nextCycle: CycleInput) {
@@ -672,7 +687,7 @@ export default function App() {
         />
       )}
       {activeTab === "cycle" && <CycleCalculator cycle={cycle} result={result} onChange={updateCycle} onRefreshClose={refreshTqqqClose} onRefreshExchangeRate={refreshExchangeRate} />}
-      {activeTab === "orders" && <OrderTables settings={settings} result={result} buyOrders={buyOrders} sellOrders={sellOrders} />}
+      {activeTab === "orders" && <OrderTables settings={settings} result={result} buyOrders={buyOrders} sellOrders={sellOrders} sellOrderQuantity={sellOrderQuantity} onSellOrderQuantityChange={changeSellOrderQuantity} />}
       {activeTab === "advance" && (
         <AdvanceCycle
           fills={fillDrafts}

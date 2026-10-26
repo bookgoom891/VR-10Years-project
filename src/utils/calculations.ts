@@ -134,20 +134,22 @@ export function buildSellOrders(
   upperBand: number,
   shares: number,
   pool: number,
-  closingPrice: number
+  closingPrice: number,
+  orderQuantity = 1
 ): OrderRow[] {
   const rows: OrderRow[] = [];
-  if (![upperBand, shares, pool, closingPrice].every(Number.isFinite) || upperBand <= 0 || closingPrice <= 0) {
+  const sellQuantity = roundToTwo(orderQuantity);
+  if (![upperBand, shares, pool, closingPrice, orderQuantity].every(Number.isFinite) || upperBand <= 0 || closingPrice <= 0 || sellQuantity <= 0) {
     return rows;
   }
   let currentShares = shares;
   let currentPool = pool;
   const maxPrice = closingPrice * 1.5;
 
-  for (let step = 1; currentShares >= 1; step += 1) {
+  for (let step = 1; currentShares >= 0.01; step += 1) {
     const price = roundToTwo(upperBand / currentShares);
     if (price <= 0 || price > maxPrice) break;
-    const quantity = 1;
+    const quantity = Math.min(sellQuantity, currentShares);
     const poolChange = price * quantity;
 
     currentShares = roundToTwo(currentShares - quantity);

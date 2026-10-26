@@ -1,11 +1,14 @@
+import type { ReactNode } from "react";
 import type { CycleResult, OrderRow, StrategySettings } from "../types";
-import { money, price, shares } from "./fields";
+import { money, NumberField, price, shares } from "./fields";
 
 interface Props {
   settings: StrategySettings;
   result: CycleResult;
   buyOrders: OrderRow[];
   sellOrders: OrderRow[];
+  sellOrderQuantity: number;
+  onSellOrderQuantityChange: (value: number) => void;
 }
 
 function copyText(settings: StrategySettings, result: CycleResult, buyOrders: OrderRow[], sellOrders: OrderRow[]) {
@@ -25,10 +28,13 @@ ${sellLines.join("\n") || "없음"}`;
   void navigator.clipboard.writeText(text);
 }
 
-function OrderTable({ title, rows, type }: { title: string; rows: OrderRow[]; type: "buy" | "sell" }) {
+function OrderTable({ title, rows, type, control }: { title: string; rows: OrderRow[]; type: "buy" | "sell"; control?: ReactNode }) {
   return (
     <article className="table-card">
-      <h3>{title}</h3>
+      <div className="section-title with-actions small">
+        <h3>{title}</h3>
+        {control}
+      </div>
       <div className="table-wrap">
         <table>
           <thead>
@@ -64,7 +70,7 @@ function OrderTable({ title, rows, type }: { title: string; rows: OrderRow[]; ty
   );
 }
 
-export default function OrderTables({ settings, result, buyOrders, sellOrders }: Props) {
+export default function OrderTables({ settings, result, buyOrders, sellOrders, sellOrderQuantity, onSellOrderQuantityChange }: Props) {
   return (
     <section className="panel">
       <div className="section-title">
@@ -72,7 +78,9 @@ export default function OrderTables({ settings, result, buyOrders, sellOrders }:
       </div>
       <div className="split-grid">
         <OrderTable title="매수 예약표" rows={buyOrders} type="buy" />
-        <OrderTable title="매도 예약표" rows={sellOrders} type="sell" />
+        <OrderTable title="매도 예약표" rows={sellOrders} type="sell" control={
+          <NumberField label="1회 매도 수량" value={sellOrderQuantity} min={0.01} onChange={onSellOrderQuantityChange} suffix="주" />
+        } />
       </div>
       <button className="primary-action" type="button" onClick={() => copyText(settings, result, buyOrders, sellOrders)}>
         토스증권 입력용 복사
