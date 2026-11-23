@@ -144,7 +144,7 @@ export function buildSellOrders(
   }
   let currentShares = shares;
   let currentPool = pool;
-  const maxPrice = closingPrice * 1.5;
+  const maxPrice = closingPrice * 2;
 
   for (let step = 1; currentShares >= 0.01; step += 1) {
     const price = roundToTwo(upperBand / currentShares);
